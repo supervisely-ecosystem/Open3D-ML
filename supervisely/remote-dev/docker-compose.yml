@@ -1,0 +1,14 @@
+version: "2.3"
+services:
+  waymo_tools:
+    shm_size: '20gb'
+    runtime: 'nvidia'
+    build: 
+      context: .
+      dockerfile: Dockerfile-dev
+      args:
+        IMAGE: supervisely/waymo_tools:1.0.0
+    ports:
+      - "5555:22"
+    volumes:
+      - "./data:/data"
