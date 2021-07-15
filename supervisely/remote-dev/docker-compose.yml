@@ -1,13 +1,13 @@
 version: "2.3"
 services:
-  waymo_tools:
+  open3d:
     shm_size: '20gb'
     runtime: 'nvidia'
     build: 
       context: .
       dockerfile: Dockerfile-dev
       args:
-        IMAGE: supervisely/waymo_tools:1.0.0
+        IMAGE: supervisely/open3d:1.0.0
     ports:
       - "5555:22"
     volumes:
