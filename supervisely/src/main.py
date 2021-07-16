@@ -63,31 +63,31 @@ if __name__ == '__main__':
 
 
     ## INFERENCE ON RAW DATA ###
-
-    cfg = _ml3d.utils.Config.load_from_file("pointpillars_supervisely.yml")
-
-
-    model = PointPillarsNocalib(**cfg.model)
-    pipeline = ObjectDetection(model=model, dataset=None, **cfg.pipeline)
-    pipeline.load_ckpt(ckpt_path="./logs/PointPillarsNocalib_SuperviselyDetectionDataset_tf/checkpoint/ckpt-14")
-    rawloader = SuperviselyDetectionDataset.get_input_loader("/data/app_data/supervisely_dataset/000001.pcd")
-
-    process_bar = tqdm.tqdm(rawloader, total=1, desc='inference')
-    pred = []
-    for data in process_bar:
-        results = pipeline.run_inference(data)
-        pred.append(results[0])
-
-    for p in pred:
-        filtered = []
-        for bevbox3d in p:
-            if bevbox3d.confidence > 0.6:
-                filtered.append((bevbox3d.label_class, bevbox3d.center))
-        print("result", filtered)
-
-
-    print("FINISHED!")
-    exit(1)
+    #
+    # cfg = _ml3d.utils.Config.load_from_file("pointpillars_supervisely.yml")
+    #
+    #
+    # model = PointPillarsNocalib(**cfg.model)
+    # pipeline = ObjectDetection(model=model, dataset=None, **cfg.pipeline)
+    # pipeline.load_ckpt(ckpt_path="./logs/PointPillarsNocalib_SuperviselyDetectionDataset_tf/checkpoint/ckpt-14")
+    # rawloader = SuperviselyDetectionDataset.get_input_loader("/data/app_data/supervisely_dataset/000001.pcd")
+    #
+    # process_bar = tqdm.tqdm(rawloader, total=1, desc='inference')
+    # pred = []
+    # for data in process_bar:
+    #     results = pipeline.run_inference(data)
+    #     pred.append(results[0])
+    #
+    # for p in pred:
+    #     filtered = []
+    #     for bevbox3d in p:
+    #         if bevbox3d.confidence > 0.6:
+    #             filtered.append((bevbox3d.label_class, bevbox3d.center))
+    #     print("result", filtered)
+    #
+    #
+    # print("FINISHED!")
+    # exit(1)
 
 
 
