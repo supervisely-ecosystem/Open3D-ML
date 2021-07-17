@@ -8,9 +8,8 @@ from supervisely_lib.video_annotation.key_id_map import KeyIdMap
 if __name__ == "__main__":
     api = sly.Api.from_env()
     base_dir = '/data/'
-    dataset_path = "pointcloud_with_ann_import_example"
-    project_id = 5423
-    project_name = dataset_path
+    project_name = "converted_kitti_project3"
+    project_id = None
 
     if project_id is not None:
         project = api.project.get_info_by_id(5423)  # to existing project
@@ -20,7 +19,7 @@ if __name__ == "__main__":
                                      type=sly.ProjectType.POINT_CLOUDS,
                                      change_name_if_conflict=True)
 
-    project_fs = sly.PointcloudProject.read_single(base_dir + dataset_path)
+    project_fs = sly.PointcloudProject.read_single(base_dir + project_name)
 
     api.project.update_meta(project.id, project_fs.meta.to_json())
     sly.logger.info("Project {!r} [id={!r}] has been created".format(project.name, project.id))
@@ -58,4 +57,4 @@ if __name__ == "__main__":
 
                 api.pointcloud.add_related_images(rimg_infos)
 
-    sly.logger.info('PROJECT_CREATED', extra={'event_type': sly.EventType.PROJECT_CREATED, 'project_id': project.id})
+    sly.logger.info('PROJECT_UPLOADED', extra={'event_type': sly.EventType.PROJECT_CREATED, 'project_id': project.id})
