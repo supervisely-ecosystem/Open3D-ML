@@ -40,8 +40,13 @@ def convert_labels_to_meta(labels, geometry=Cuboid3d):
     return meta
 
 def convert_bin_to_pcd(bin_file, save_filepath):
-    points = np.fromfile(bin_file, dtype=np.float32).reshape(-1, 4)[:, 0:3]
+    bin = np.fromfile(bin_file, dtype=np.float32).reshape(-1, 4)
+    points = bin[:, 0:3]
+    intensity = bin[:, -1]
+    intensity_fake_rgb = np.zeros((intensity.shape[0], 3))
+    intensity_fake_rgb[:,0] = intensity
     pc = o3d.geometry.PointCloud(o3d.utility.Vector3dVector(points))
+    pc.colors = o3d.utility.Vector3dVector(intensity_fake_rgb)
     o3d.io.write_point_cloud(save_filepath, pc)
 
 def flatten(list_2d):
