@@ -55,7 +55,7 @@ def annotation_to_kitti_label(annotation_path, calib_path, kiiti_label_path):
 
         obj = BEVBox3D(center=np.array([float(position.x), float(position.y), float(position.z)]),
                        size=np.array([float(dimensions.x), float(dimensions.z), float(dimensions.y)]),
-                       yaw = np.array(float(rotation.z)),
+                       yaw = np.array(float(-rotation.z)),
                        label_class=class_name,
                        confidence=1.0,
                        world_cam=calib['world_cam'],
@@ -67,14 +67,6 @@ def annotation_to_kitti_label(annotation_path, calib_path, kiiti_label_path):
         for box in objects:
             f.write(box.to_kitti_format(box.confidence))
             f.write('\n')
-
-
-# def _intrinsic_matrix_to_cam_img(intrinsic_matrix):
-#     cam_img = intrinsic_matrix.reshape(3,3).T
-#     cam_img = np.vstack((cam_img, np.zeros(3)))
-#     fake_col = np.array([0., 0. ,1., 0.]).reshape(-1, 1)
-#     cam_img = np.hstack((cam_img, fake_col))
-#     return cam_img
 
 
 
@@ -101,7 +93,7 @@ def gen_calib_from_img_meta(img_meta, path):
         f"P1: {empty_line}",
         f"P2: {mkline(cam_img)}",
         f"P3: {empty_line}",
-        f"R0_rect: {mkline(np.zeros(9, dtype=np.float32))}",
+        f"R0_rect: {mkline(np.eye(3, dtype=np.float32).flatten())}",
         f"Tr_velo_to_cam: {mkline(extrinsic_matrix)}",
         f"Tr_imu_to_velo: {empty_line}"]
 
@@ -112,7 +104,7 @@ import supervisely_lib as sly
 
 
 base_dir = '/data/'
-project_name = "sly_flying"
+project_name = "sly_project"
 
 project_fs = sly.PointcloudProject.read_single(base_dir + project_name)
 

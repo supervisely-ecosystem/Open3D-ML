@@ -9,8 +9,6 @@ from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
 from supervisely_lib.project.pointcloud_project import OpenMode
 
-logger = logging.getLogger()
-from collections import namedtuple
 import shutil
 
 
@@ -23,27 +21,6 @@ def get_kitti_files_list(kitti_dataset_path):
     image_paths = [x.replace('velodyne', 'image_2').replace('.bin', '.png') for x in bin_paths]
     calib_paths = [x.replace('label_2', 'calib') for x in label_paths]
     return bin_paths, label_paths, image_paths, calib_paths
-
-
-
-def read_label(label_file):
-    with open(label_file, 'r') as f:
-        lines = f.readlines()
-
-    objects = []
-    for line in lines:
-        label = line.strip().split(' ')
-        bbox3d = namedtuple("Bbox3D", ("label_class", "center", "size", "yaw"))
-
-        bbox3d.label_class = label[0]
-        bbox3d.center = np.array([float(label[11]),
-                                 float(label[12]),
-                                 float(label[13])])
-
-        bbox3d.size = [float(label[9]), float(label[8]), float(label[10])]
-        bbox3d.yaw = float(label[14])
-        objects.append(bbox3d)
-    return objects
 
 def read_kitti_annotations(label_paths, calib_paths):
     all_labels = []
@@ -73,16 +50,14 @@ def flatten(list_2d):
 def _convert_label_to_geometry(label):
     geometries = []
     for l in label:
-        position = Vector3d(float(l.center[0]), float(l.center[1]), float(l.center[2]))
+        bbox = l.to_xyzwhlr()
+        dim = bbox[[3, 5, 4]]
+        pos = bbox[:3] + [0, 0, dim[1] / 2]
+        yaw = bbox[-1]
+        position = Vector3d(float(pos[0]), float(pos[1]), float(pos[2]))
+        rotation = Vector3d(0, 0, float(-yaw))
 
-       # if reverse:
-       #     yaw = float(-l.yaw) - np.pi
-       #     yaw = yaw - np.floor(yaw / (2 * np.pi) + 0.5) * 2 * np.pi
-       # else:
-        yaw = -l.yaw
-
-        rotation = Vector3d(0, 0, float(yaw))
-        dimension = Vector3d(float(l.size[0]), float(l.size[2]), float(l.size[1]))
+        dimension = Vector3d(float(dim[0]), float(dim[2]), float(dim[1]))
         geometry = Cuboid3d(position, rotation, dimension)
         geometries.append(geometry)
     return geometries
@@ -109,14 +84,21 @@ def convert_calib_to_image_meta(image_name, calib_path, camera_num=2):
     intrinsic_matrix = lines[camera_num].strip().split(' ')[1:]
     intrinsic_matrix = np.array(intrinsic_matrix, dtype=np.float32).reshape(3, 4)[:3, :3]
 
-    extrinsic_matrix = lines[5].strip().split(' ')[1:]
-    extrinsic_matrix = np.array(extrinsic_matrix, dtype=np.float32)
+    obj = lines[4].strip().split(' ')[1:]
+    rect_4x4 = np.eye(4, dtype=np.float32)
+    rect_4x4[:3, :3] = np.array(obj, dtype=np.float32).reshape(3, 3)
+
+    obj = lines[5].strip().split(' ')[1:]
+    Tr_velo_to_cam = np.eye(4, dtype=np.float32)
+    Tr_velo_to_cam[:3] = np.array(obj, dtype=np.float32).reshape(3, 4)
+    world_cam = np.transpose(rect_4x4 @ Tr_velo_to_cam)
+    extrinsic_matrix = world_cam[:4,:3].T
 
     data = {
         "name": image_name,
         "meta": {
             "sensorsData": {
-                "extrinsicMatrix": list(extrinsic_matrix.astype(float)),
+                "extrinsicMatrix": list(extrinsic_matrix.flatten().astype(float)),
                 "intrinsicMatrix": list(intrinsic_matrix.flatten().astype(float))
             }
         }
@@ -142,7 +124,7 @@ if __name__ == '__main__':
     sly.logger.info(f"Created Supervisely dataset with {dataset_fs.name} at {dataset_fs.directory}")
     meta = convert_labels_to_meta(kitti_labels)
     project_fs.set_meta(meta)
-    sly.logger.info(f"Project meta generated:\n{meta}")
+
     for bin_path, kitti_label, image_path, calib_path in zip(bin_paths, kitti_labels, image_paths, calib_paths):
         item_name = sly.fs.get_file_name(bin_path) + ".pcd"
         item_path = dataset_fs.generate_item_path(item_name)
