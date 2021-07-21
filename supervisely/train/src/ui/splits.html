@@ -1,5 +1,5 @@
 <sly-card title="Train / Validation splits"
-          subtitle="Define how to split your data to train/val subsets. Number of images in splits is approximate.
+          subtitle="Define how to split your data to train/val subsets. Number of pointclouds in splits is approximate.
                     Preview final data statistics in next sections"
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsed2"
@@ -49,7 +49,7 @@
             </el-table>
         </el-tab-pane>
         <el-tab-pane name="tags" :disabled="data.done2">
-            <el-radio slot="label" v-model="state.splitMethod" label="tags" :disabled="data.done2">
+            <el-radio slot="label" v-model="state.splitMethod" label="tags" :disabled="true">
                 Based on image tags
                 <div>Images should have assigned train or val tag</div>
             </el-radio>
@@ -96,7 +96,7 @@
             </sly-field>
         </el-tab-pane>
         <el-tab-pane name="datasets" :disabled="data.done2">
-            <el-radio slot="label" v-model="state.splitMethod" label="datasets" :disabled="data.done2">
+            <el-radio slot="label" v-model="state.splitMethod" label="datasets" :disabled="true">
                 Based on datasets
                 <div>Select one or several datasets for every split</div>
             </el-radio>
