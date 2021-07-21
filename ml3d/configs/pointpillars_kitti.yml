@@ -1,10 +1,8 @@
 dataset:
   name: KITTI
-  #dataset_path: /data/kitti_with_images/
-  dataset_path: /data/KITTI_CONVERTED/
+  dataset_path: # path/to/your/dataset
   cache_dir: ./logs/cache
   steps_per_epoch_train: 5000
-  val_split: 2
 
 model:
   name: PointPillars
@@ -84,7 +82,7 @@ model:
 pipeline:
   name: ObjectDetection
   test_compute_metric: true
-  batch_size: 1
+  batch_size: 6
   val_batch_size: 1
   test_batch_size: 1
   save_ckpt_freq: 5
