@@ -2,8 +2,9 @@ import supervisely_lib as sly
 import sly_globals as g
 import input_project as input_project
 import splits as train_val_split
-#import tags
+import tags
 import validate_training_data
+
 #import augs
 #import architectures as model_architectures
 #import hyperparameters as hyperparameters
@@ -19,8 +20,9 @@ def init(data, state):
 
     input_project.init(data, state)
     train_val_split.init(g.project_info, g.project_meta, data, state)
-    #tags.init(data, state)
+    tags.init(data, state)
     validate_training_data.init(data, state)
+
     # augs.init(data, state)
     # model_architectures.init(data, state)
     # hyperparameters.init(data, state)
@@ -37,13 +39,13 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     data = {}
     state = {}
 
-    # if restart_from_step <= 2:
-    #     train_val_split.init(g.project_info, g.project_meta, data, state)
-    # if restart_from_step <= 3:
-    #     if restart_from_step == 3:
-    #         tags.restart(data, state)
-    #     else:
-    #         tags.init(data, state)
+    if restart_from_step <= 2:
+        train_val_split.init(g.project_info, g.project_meta, data, state)
+    if restart_from_step <= 3:
+        if restart_from_step == 3:
+            tags.restart(data, state)
+        else:
+            tags.init(data, state)
     # if restart_from_step <= 4:
     #     validate_training_data.init(data, state)
     # if restart_from_step <= 5:

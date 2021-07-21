@@ -52,7 +52,7 @@ def download(api: sly.Api, task_id, context, state, app_logger):
     g.api.app.set_fields(g.task_id, fields)
 
 
-def get_image_info_from_cache(dataset_name, item_name):
+def get_pccloud_info_from_cache(dataset_name, item_name):
     dataset_fs = project_fs.datasets.get(dataset_name)
     img_info_path = dataset_fs.get_img_info_path(item_name)
     image_info_dict = sly.json.load_json_file(img_info_path)
