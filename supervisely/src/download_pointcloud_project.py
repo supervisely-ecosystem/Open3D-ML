@@ -6,8 +6,8 @@ from supervisely_lib.project.pointcloud_project import download_pointcloud_proje
 
 if __name__ == "__main__":
     dest_dir = '/data/sly_project'
-    shutil.rmtree(dest_dir)  # WARNING!
-    project_id = 5423
+    shutil.rmtree(dest_dir, ignore_errors=True)  # WARNING!
+    project_id = 5515
     api = sly.Api.from_env()
 
     download_pointcloud_project(api, project_id, dest_dir, dataset_ids=None, download_items=True, log_progress=True)
