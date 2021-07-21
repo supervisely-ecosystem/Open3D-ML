@@ -9,7 +9,7 @@ if __name__ == "__main__":
     shutil.rmtree(dest_dir, ignore_errors=True)  # WARNING!
     project_id = 5515
     api = sly.Api.from_env()
-
+#(api, project_id, dest_dir, dataset_ids=None, download_items=True, log_progress=False):
     download_pointcloud_project(api, project_id, dest_dir, dataset_ids=None, download_items=True, log_progress=True)
 
     sly.logger.info('PROJECT_DOWNLOADED', extra={'dest_dir': dest_dir,
