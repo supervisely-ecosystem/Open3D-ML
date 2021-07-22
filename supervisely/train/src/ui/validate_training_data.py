@@ -38,7 +38,6 @@ def init_cache(progress_cb):
 
             if len(ann.figures) == 0:
                 pointclouds_without_figures.append(item_name)
-                print("KKKKKK!!!!")
             else:
                 for fig in ann.figures:
                     tag_name = fig.parent_object.obj_class.name

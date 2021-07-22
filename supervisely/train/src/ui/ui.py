@@ -46,11 +46,11 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             tags.init(data, state)
     if restart_from_step <= 4:
         validate_training_data.init(data, state)
-    # if restart_from_step <= 5:
-    #     if restart_from_step == 5:
-    #         augs.restart(data, state)
-    #     else:
-    #         augs.init(data, state)
+    if restart_from_step <= 5:
+        if restart_from_step == 5:
+            augs.restart(data, state)
+        else:
+            augs.init(data, state)
     # if restart_from_step <= 6:
     #     if restart_from_step == 6:
     #         model_architectures.restart(data, state)
