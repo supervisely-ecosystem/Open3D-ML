@@ -4,8 +4,7 @@ import input_project as input_project
 import splits as train_val_split
 import tags
 import validate_training_data
-
-#import augs
+import augs
 #import architectures as model_architectures
 #import hyperparameters as hyperparameters
 #import hyperparameters_python as hyperparameters_python
@@ -22,8 +21,7 @@ def init(data, state):
     train_val_split.init(g.project_info, g.project_meta, data, state)
     tags.init(data, state)
     validate_training_data.init(data, state)
-
-    # augs.init(data, state)
+    augs.init(data, state)
     # model_architectures.init(data, state)
     # hyperparameters.init(data, state)
     # hyperparameters_python.init(data, state)
@@ -46,8 +44,8 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             tags.restart(data, state)
         else:
             tags.init(data, state)
-    # if restart_from_step <= 4:
-    #     validate_training_data.init(data, state)
+    if restart_from_step <= 4:
+        validate_training_data.init(data, state)
     # if restart_from_step <= 5:
     #     if restart_from_step == 5:
     #         augs.restart(data, state)

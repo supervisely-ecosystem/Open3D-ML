@@ -1,8 +1,8 @@
-<sly-card title="Training tags"
+<sly-card title="Training classes \ figures"
           subtitle="Training supports only Figures of type Cuboid3D"
           :options="{collapsable: true}"
           :collapsed.sync="state.collapsed3"
-          :disabled="{disabled: state.disabled3, message: 'Generate train/val splits at step 2 before preview training tags'}"
+          :disabled="{disabled: true, message: 'Comming soon'}"
           ref="step3"
 >
     <sly-class-balance v-if="data.tagsBalance"
@@ -10,6 +10,11 @@
                        :content="data.tagsBalance"
                        :options="data.tagsBalanceOptions"
                        :disabled="data.done3">
+        <template v-slot:collapse-row="{ row }">
+            <sly-image-slider :data="data.tag2urls[row.name]"
+                              :options="data.imageSliderOptions"></sly-image-slider>
+        </template>
+
     </sly-class-balance>
     <div v-if="data.skippedTags.length > 0">
         <hr style="border: 0; border-top: 1px solid rgba(0,0,0,.12); margin-bottom: 15px;"/>

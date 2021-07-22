@@ -98,9 +98,9 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
         api.task.set_field(task_id, "state.splitInProgress", False)
         fields = [
             {"field": "state.splitInProgress", "payload": False},
-            {"field": f"data.done2", "payload": step_done},
-            {"field": f"data.trainImagesCount", "payload": None if train_count is None else train_count},
-            {"field": f"data.valImagesCount", "payload": None if val_count is None else val_count},
+            {"field": "data.done2", "payload": step_done},
+            {"field": "data.trainImagesCount", "payload":  train_count},
+            {"field": "data.valImagesCount", "payload": val_count},
         ]
         if step_done is True:
             fields.extend([
@@ -108,7 +108,12 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
                 {"field": "state.disabled3", "payload": False},
                 {"field": "state.activeStep", "payload": 3},
             ])
-        g.api.app.set_fields(g.task_id, fields)
 
-    # save_set_to_json(os.path.join(g.project_dir, "train_set.json"), train_set)
-    # save_set_to_json(os.path.join(g.project_dir, "val_set.json"), val_set)
+            fields.extend([
+                {"field": "data.done3", "payload": True},
+                {"field": "state.collapsed4", "payload": False},
+                {"field": "state.disabled4", "payload": False},
+                {"field": "state.activeStep", "payload": 4},
+            ])
+        print(fields)
+        g.api.app.set_fields(g.task_id, fields)
