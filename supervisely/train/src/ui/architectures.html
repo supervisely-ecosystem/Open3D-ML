@@ -38,8 +38,8 @@
                 </tbody>
             </table>
         </el-tab-pane>
-        <el-tab-pane name="custom" :disabled="data.done6">
-            <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="data.done6">
+        <el-tab-pane name="custom" :disabled="true">
+            <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="true">
                 Custom weights
             </el-radio>
             <sly-field title="Path to weights dir" description="Copy path in Team Files">
@@ -50,7 +50,7 @@
             <el-radio slot="label" v-model="state.weightsInitialization" label="random" :disabled="data.done6">
                 Random initialization
             </el-radio>
-                        <el-radio :disabled="true"> Random </el-radio>
+             <el-radio> Random </el-radio>
 
             </el-radio>
         </el-tab-pane>
