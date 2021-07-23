@@ -115,5 +115,4 @@ def create_splits(api: sly.Api, task_id, context, state, app_logger):
                 {"field": "state.disabled4", "payload": False},
                 {"field": "state.activeStep", "payload": 4},
             ])
-        print(fields)
         g.api.app.set_fields(g.task_id, fields)

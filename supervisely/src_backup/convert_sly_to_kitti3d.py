@@ -10,6 +10,8 @@ import supervisely_lib as sly
 
 def kitti_paths(path, mode='write'):
     shutil.rmtree(path, ignore_errors=True)  # WARN!
+    os.mkdir(path)
+    path = os.path.join(path, 'training')
     bin_dir = os.path.join(path, 'velodyne')
     image_dir = os.path.join(path, 'image_2')
     label_dir = os.path.join(path, 'label_2')
@@ -100,7 +102,6 @@ def gen_calib_from_img_meta(img_meta, path):
 
 def convert(project_dir, exclude_items=[]):
     kitti_dataset_path = project_dir + "_kitti"
-
     project_fs = sly.PointcloudProject.read_single(project_dir)
     bin_dir, image_dir, label_dir, calib_dir = kitti_paths(kitti_dataset_path)
 

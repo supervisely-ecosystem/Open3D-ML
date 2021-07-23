@@ -1,6 +1,6 @@
 dataset:
   name: KITTI
-  dataset_path: /data/kitti_with_images/
+  dataset_path: /app_debug_data/data/sly_project_kitti
   #dataset_path: /data/KITTI_CONVERTED/
   cache_dir: ./logs/cache
   steps_per_epoch_train: 50
