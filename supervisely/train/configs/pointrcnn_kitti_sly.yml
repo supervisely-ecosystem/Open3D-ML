@@ -2,6 +2,8 @@ dataset:
   name: KITTI
   dataset_path: # path/to/your/dataset
   cache_dir: ./logs/cache
+  steps_per_epoch_train: 50
+  val_split: 5
 
 model:
   name: PointRCNN
@@ -18,11 +20,7 @@ model:
   augment:
     PointShuffle: True
     ObjectRangeFilter: False
-    ObjectSample:
-      min_points_dict:
-        Car: 50
-      sample_dict:
-        Car: 15
+    ObjectNoise: False
 
   rpn: # First module for bottom-up 3D proposal generation
     backbone: # backbone based on PointNet++

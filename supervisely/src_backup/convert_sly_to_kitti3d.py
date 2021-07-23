@@ -36,11 +36,11 @@ def pcd_to_bin(pcd_path, bin_path):
     points.tofile(bin_path)
 
 
-def annotation_to_kitti_label(annotation_path, calib_path, kiiti_label_path):
+def annotation_to_kitti_label(annotation_path, calib_path, kiiti_label_path, meta):
     ann_json = sly.io.json.load_json_file(annotation_path)
     calib = o3d.ml.datasets.KITTI.read_calib(calib_path)
 
-    ann = sly.PointcloudAnnotation.from_json(ann_json, project_fs.meta)
+    ann = sly.PointcloudAnnotation.from_json(ann_json, meta)
     objects = []
 
     for fig in ann.figures:
@@ -98,16 +98,18 @@ def gen_calib_from_img_meta(img_meta, path):
 
 
 
-if __name__ == "__main__":
-    kitti_dataset_path = '/data/KITTI_CONVERTED/training'
-    base_dir = '/data/'
-    project_name = "sly_project_downloaded"
+def convert(project_dir, exclude_items=[]):
+    kitti_dataset_path = project_dir + "_kitti"
 
-    project_fs = sly.PointcloudProject.read_single(base_dir + project_name)
+    project_fs = sly.PointcloudProject.read_single(project_dir)
     bin_dir, image_dir, label_dir, calib_dir = kitti_paths(kitti_dataset_path)
 
     for dataset_fs in project_fs:
         for item_name in dataset_fs:
+            if item_name in exclude_items:
+                sly.logger.info(f"{item_name} excluded")
+                continue
+
             item_path, related_images_dir, ann_path = dataset_fs.get_item_paths(item_name)
 
             item_name_without_ext = item_name.split('.')[0]
@@ -121,7 +123,7 @@ if __name__ == "__main__":
             realted_img_path, img_meta = dataset_fs.get_related_images(item_name)[0]  # ONLY 1 Img
 
             gen_calib_from_img_meta(img_meta, calib_path)
-            annotation_to_kitti_label(ann_path, calib_path=calib_path, kiiti_label_path=label_path)
+            annotation_to_kitti_label(ann_path, calib_path=calib_path, kiiti_label_path=label_path, meta=project_fs.meta)
             shutil.copy(src=realted_img_path, dst=image_path)
             sly.logger.info(f"{item_name} converted to kitti .bin")
     sly.logger.info(f"Dataset converted to kitti and stored at {kitti_dataset_path}")

@@ -7,8 +7,8 @@ import validate_training_data
 import augs
 import architectures as model_architectures
 import hyperparameters as hyperparameters
-#import hyperparameters_python as hyperparameters_python
-#import monitoring as monitoring
+import hyperparameters_python as hyperparameters_python
+import monitoring as monitoring
 # import artifacts as artifacts
 
 
@@ -24,8 +24,8 @@ def init(data, state):
     augs.init(data, state)
     model_architectures.init(data, state)
     hyperparameters.init(data, state)
-    # hyperparameters_python.init(data, state)
-    # monitoring.init(data, state)
+    hyperparameters_python.init(data, state)
+    monitoring.init(data, state)
     # artifacts.init(data)
 
 
@@ -61,11 +61,11 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             hyperparameters.restart(data, state)
         else:
             hyperparameters.init(data, state)
-    # if restart_from_step <= 8:
-    #     if restart_from_step == 8:
-    #         hyperparameters_python.restart(data, state)
-    #     else:
-    #         hyperparameters_python.init(data, state)
+    if restart_from_step <= 8:
+        if restart_from_step == 8:
+            hyperparameters_python.restart(data, state)
+        else:
+            hyperparameters_python.init(data, state)
 
     fields = [
         {"field": "data", "payload": data, "append": True, "recursive": False},

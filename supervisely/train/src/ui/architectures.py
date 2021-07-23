@@ -13,7 +13,7 @@ local_weights_path = None
 def get_models_list():
     res = [
         {
-            "config": "supervisely/src_backup/pointpillars_kitti_sly.yml",
+            "config": "supervisely/train/configs/pointpillars_kitti_sly.yml",
             "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointpillars_kitti_202012221652utc.zip",
             "model": "PointPillars",
             "params": "Unknown",
@@ -22,7 +22,7 @@ def get_models_list():
             "MaPKITTI3D": "55.2"
         },
         {
-            "config": "supervisely/src_backup/pointrcnn_kitti_sly.yml",
+            "config": "supervisely/train/configs/pointrcnn_kitti_sly.yml",
             "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointrcnn_kitti_202105071146utc.zip",
             "model": "PointRCNN",
             "params": "Unknown",
@@ -71,7 +71,7 @@ def init(data, state):
     models = get_models_list()
     data["models"] = models
     data["modelColumns"] = get_table_columns()
-    state["selectedModel"] = "ResNet-34"  # "ResNet-50"
+    state["selectedModel"] = "PointPillars"
     state["weightsInitialization"] = "KITTI"
     state["collapsed6"] = True
     state["disabled6"] = True
@@ -139,11 +139,14 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
         reset_progress(6)
         raise e
 
+    model_config_example = get_model_info_by_name(state["selectedModel"])['config']
+
     fields = [
         {"field": "data.done6", "payload": True},
         {"field": "state.collapsed7", "payload": False},
         {"field": "state.disabled7", "payload": False},
         {"field": "state.activeStep", "payload": 7},
-        {"field": "state.localWeightsPath", "payload": local_weights_path}
+        {"field": "state.localWeightsPath", "payload": local_weights_path},
+        {"field": "state.modelConfigExample", "payload": model_config_example}
     ]
     g.api.app.set_fields(g.task_id, fields)

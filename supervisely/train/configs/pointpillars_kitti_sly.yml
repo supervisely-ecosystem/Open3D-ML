@@ -69,6 +69,7 @@ model:
   
   augment:
     PointShuffle: True
+    ObjectNoise: False
 
 pipeline:
   name: ObjectDetection

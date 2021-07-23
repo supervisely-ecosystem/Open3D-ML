@@ -5,7 +5,7 @@ from ml3d.tf.pipelines.object_detection import ObjectDetection
 
 import pprint
 
-cfg = Config.load_from_file("pointpillars_kitti_sly.yml")
+cfg = Config.load_from_file("../train/configs/pointpillars_kitti_sly.yml")
 
 model = PointPillars(**cfg.model)
 dataset = KITTI(**cfg.dataset)
