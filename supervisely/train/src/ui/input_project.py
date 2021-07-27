@@ -22,7 +22,6 @@ def init(data, state):
     data["done1"] = False
     state["collapsed1"] = False
 
-
 @g.my_app.callback("download_project")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()

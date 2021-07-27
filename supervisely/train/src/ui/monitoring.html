@@ -25,11 +25,6 @@
         </div>
     </div>
 
-    <sly-field v-if="data.eta" class="mt10"
-               title="ETA"
-               description="Gives an estimate of roughly how long the whole training process will take">
-        <b style="color: #20a0ff"><i class="zmdi zmdi-time-countdown mr5"></i>{{data.eta}}</b>
-    </sly-field>
     <div v-if="data.progressUploadDir && !data.outputUrl" class="mt10">
         <div style="color: #20a0ff">
             {{data.progressUploadDir}}: {{data.progressCurrentUploadDir}} / {{data.progressTotalUploadDir}}
@@ -62,51 +57,127 @@
                     style="width: 450px;"
                     @input="(val)=>{
                                 state.smoothing = val;
-                                data.chartTrainLoss.options.smoothingWeight = val;
-                                data.chartValAccuracy.options.smoothingWeight = val;
+                                data.chartTrainLossBbox.options.smoothingWeight = val;
+                                data.chartTrainLossCls.options.smoothingWeight = val;
+                                data.chartTrainLossDir.options.smoothingWeight = val;
+                                data.chartTrainLossSum.options.smoothingWeight = val;
+                                data.chartValLossBbox.options.smoothingWeight = val;
+                                data.chartValLossCls.options.smoothingWeight = val;
+                                data.chartValLossDir.options.smoothingWeight = val;
+                                data.chartValLossSum.options.smoothingWeight = val;
                             }"
             >
             </el-slider>
         </sly-field>
 
-        <sly-field title="Training charts" description="Real-time training metrics">
+        <sly-field title="Training charts" description="Real-time training progress monitor">
             <div class="fflex">
                 <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartLR.options"
-                        :content="data.chartLR.series">
+                        style="width: 25%;"
+                        :options.sync="data.chartTrainLossBbox.options"
+                        :content="data.chartTrainLossBbox.series">
                 </sly-line-chart>
                 <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartTrainLoss.options"
-                        :content="data.chartTrainLoss.series">
+                        style="width: 25%;"
+                        :options.sync="data.chartTrainLossCls.options"
+                        :content="data.chartTrainLossCls.series">
                 </sly-line-chart>
                 <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartValAccuracy.options"
-                        :content="data.chartValAccuracy.series">
+                        style="width: 25%;"
+                        :options.sync="data.chartTrainLossDir.options"
+                        :content="data.chartTrainLossDir.series">
                 </sly-line-chart>
+                <sly-line-chart
+                        style="width: 25%;"
+                        :options.sync="data.chartTrainLossSum.options"
+                        :content="data.chartTrainLossSum.series">
+                </sly-line-chart>
+            </div>
+            <div class="fflex">
+                <sly-line-chart
+                        style="width: 25%;"
+                        :options.sync="data.chartValLossBbox.options"
+                        :content="data.chartValLossBbox.series">
+                </sly-line-chart>
+                <sly-line-chart
+                        style="width: 25%;"
+                        :options.sync="data.chartValLossCls.options"
+                        :content="data.chartValLossCls.series">
+                </sly-line-chart>
+                <sly-line-chart
+                        style="width: 25%;"
+                        :options.sync="data.chartValLossDir.options"
+                        :content="data.chartValLossDir.series">
+                </sly-line-chart>
+                <sly-line-chart
+                        style="width: 25%;"
+                        :options.sync="data.chartValLossSum.options"
+                        :content="data.chartValLossSum.series">
+                </sly-line-chart>
+            </div>
+               </sly-field>
+
+
+        <hr class="mt10 mb10" style="border: 0; border-top: 1px solid rgba(0,0,0,.12);"/>
+        <sly-field title="Accuracy" description="Change the epoch number to see the corresponding validation accuracy"
+                   v-if="data.progressCurrentEpoch > 0">
+            <sly-icon slot="icon" :options="{ color: '#006ad4', bgColor: '#bbe2ff', rounded: false }">
+                <i class="zmdi zmdi-trending-up"></i>
+            </sly-icon>
+            <el-slider
+                    :value="state.curEpochAcc"
+                    :min="0" :max="data.progressCurrentEpoch" :step="1" show-input
+                    style="width: 450px;"
+                    @input="(val)=>{
+                                state.curEpochAcc = val;
+                            }"
+            >
+            </el-slider>
+
+            <div class="fflex">
+                <table class="beautiful-table al mt10">
+                    <caption>mAP BEV</caption>
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Acc: D0</th>
+                            <th>Acc: D1</th>
+                            <th>Acc: D2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in data.accBevTable[state.curEpochAcc]">
+                            <td>{{item.class}}</td>
+                            <td>{{item.difc_0}}</td>
+                            <td>{{item.difc_1}}</td>
+                            <td>{{item.difc_2}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="beautiful-table al mt10" style="margin-left: 30px">
+                    <caption>mAP 3D</caption>
+                    <thead>
+                        <tr>
+                            <th>Class</th>
+                            <th>Acc: D0</th>
+                            <th>Acc: D1</th>
+                            <th>Acc: D2</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in data.acc3DTable[state.curEpochAcc]">
+                            <td>{{item.class}}</td>
+                            <td>{{item.difc_0}}</td>
+                            <td>{{item.difc_1}}</td>
+                            <td>{{item.difc_2}}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </sly-field>
 
-        <sly-field title="System metrics" description="Time and memory">
-            <div class="fflex">
-                <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartTime.options"
-                        :content="data.chartTime.series">
-                </sly-line-chart>
-                <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartDataTime.options"
-                        :content="data.chartDataTime.series">
-                </sly-line-chart>
-                <sly-line-chart
-                        style="width: 33%;"
-                        :options.sync="data.chartMemory.options"
-                        :content="data.chartMemory.series">
-                </sly-line-chart>
-            </div>
-        </sly-field>
+
     </div>
+
 </sly-card>

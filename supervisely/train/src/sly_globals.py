@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import sys
 import supervisely_lib as sly
-
+import shutil
 
 my_app = sly.AppService()
 api = my_app.public_api
@@ -22,6 +22,8 @@ project_dir = os.path.join(my_app.data_dir, "sly_project")
 project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))
 
 artifacts_dir = os.path.join(my_app.data_dir, "artifacts")
+
+shutil.rmtree(artifacts_dir, ignore_errors=True)
 sly.fs.mkdir(artifacts_dir)
 info_dir = os.path.join(artifacts_dir, "info")
 sly.fs.mkdir(info_dir)

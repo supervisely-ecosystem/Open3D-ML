@@ -12,8 +12,6 @@ def init(data, state):
     init_progress("Epoch", data)
     init_progress("Iter", data)
     init_progress("UploadDir", data)
-    data["eta"] = None
-
     init_charts(data, state)
 
     state["collapsed9"] = True
@@ -24,6 +22,10 @@ def init(data, state):
 
     data["outputName"] = None
     data["outputUrl"] = None
+
+    state["curEpochAcc"] = None
+    data["acc3DTable"] = []
+    data["accBevTable"] = []
 
 
 def restart(data, state):
@@ -56,13 +58,15 @@ def init_chart(title, names, xs, ys, smoothing=None, yrange=None, decimals=None,
 
 
 def init_charts(data, state):
-    # demo_x = [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]
-    # demo_y = [[0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001]]
-    data["chartLR"] = init_chart("LR", names=["LR"], xs = [[]], ys = [[]], smoothing=None,
-                                 yrange=[state["lr"] - state["lr"] / 2.0, state["lr"] + state["lr"] / 2.0],
-                                 decimals=6, xdecimals=2)
-    data["chartTrainLoss"] = init_chart("Train Loss", names=["train"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
-    data["chartValAccuracy"] = init_chart("Val Acc", names=["top-1", "top-5"], xs=[[], []], ys=[[], []], smoothing=0.6)
+    data["chartTrainLossSum"] = init_chart("Loss Sum", names=["train"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartTrainLossBbox"] = init_chart("Loss Bbox", names=["train"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartTrainLossCls"] = init_chart("Loss Cls", names=["train"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartTrainLossDir"] = init_chart("Loss Dir", names=["train"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+
+    data["chartValLossSum"] = init_chart("Val Loss Sum", names=["val"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartValLossBbox"] = init_chart("Val Loss Bbox", names=["val"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartValLossCls"] = init_chart("Val Loss Cls", names=["val"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
+    data["chartValLossDir"] = init_chart("Val Loss Dir", names=["val"], xs=[[]], ys=[[]], smoothing=0.6, xdecimals=2)
 
     data["chartTime"] = init_chart("Time", names=["time"], xs=[[]], ys=[[]], xdecimals=2)
     data["chartDataTime"] = init_chart("Data Time", names=["data_time"], xs=[[]], ys=[[]], xdecimals=2)
@@ -97,6 +101,7 @@ def upload_artifacts_and_log_progress():
     progress_cb = partial(upload_monitor, api=g.api, task_id=g.task_id, progress=progress)
 
     remote_dir = f"/artifacts/{g.task_id}_{g.project_info.name}"
+
     res_dir = g.api.file.upload_directory(g.team_id, g.artifacts_dir, remote_dir, progress_size_cb=progress_cb)
     return res_dir
 
@@ -111,7 +116,10 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
         exclude_items = g.api.app.get_field(g.task_id, "data.pointcloudsWithoutFigures")
         convert(g.project_dir, exclude_items=exclude_items)
+
+
         init_script_arguments(state)
+
         run_pipeline.main()
 
         # hide progress bars and eta

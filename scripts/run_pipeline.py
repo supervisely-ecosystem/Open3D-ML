@@ -68,6 +68,7 @@ def main():
     else:
         import tensorflow as tf
         import open3d.ml.tf as ml3d
+        from ml3d.tf.pipelines import ObjectDetection
 
         device = args.device
         gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -88,8 +89,11 @@ def main():
     if args.cfg_file is not None:
         cfg = _ml3d.utils.Config.load_from_file(args.cfg_file)
 
-        Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name,
-                                          framework)
+        if args.pipeline == "ObjectDetection":
+            Pipeline = ObjectDetection
+        else:
+            Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name,
+                                              framework)
         Model = _ml3d.utils.get_module("model", cfg.model.name, framework)
         Dataset = _ml3d.utils.get_module("dataset", cfg.dataset.name)
 
