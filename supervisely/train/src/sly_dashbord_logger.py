@@ -53,7 +53,10 @@ class SlyDashboardLogger:
         loss['loss_sum'] = [float(sum(sum(loss.values(), [])))]
 
         for loss_name, loss_value in loss.items():
-            field_name =  f"data.{lfm[loss_name]}.series[0].data"
+            try:
+                field_name =  f"data.{lfm[loss_name]}.series[0].data"
+            except KeyError:
+                continue
             loss_value =  round(float(loss_value[0]),6)
             fields.extend([{"field": field_name, "payload": [[epoch_float, loss_value]], "append": True}])
 
