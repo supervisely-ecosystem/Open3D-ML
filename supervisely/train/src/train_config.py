@@ -24,7 +24,7 @@ def generate_config(state):
     cfg['pipeline']['batch_size'] = state["batchSizeTrain"]
     cfg['pipeline']['val_batch_size'] = state["batchSizeVal"]
     cfg['pipeline']['save_ckpt_freq'] = state["checkpointInterval"]
-    cfg['pipeline']['max_epoch'] = state["epochs"]
+    cfg['pipeline']['max_epoch'] = state["epochs"] - 1
     cfg['pipeline']['grad_clip_norm'] = state["gradClipNorm"]
 
     cfg['pipeline']['optimizer']['lr'] = state["lr"]
