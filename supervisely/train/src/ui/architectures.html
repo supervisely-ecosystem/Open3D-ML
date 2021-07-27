@@ -5,13 +5,8 @@
           :disabled="{disabled: state.disabled6, message: 'Finish previous steps before choose NN architecture'}"
           ref="step6"
 >
-    <el-tabs type="border-card" class="el-tabs-cards" v-model="state.weightsInitialization">
-        <el-tab-pane name="KITTI" :disabled="data.done6">
-            <el-radio slot="label" v-model="state.weightsInitialization" label="KITTI" :disabled="data.done6">
-                Pretrained on KITTI 3D Dataset
-                <div>Default pretrained checkpoints provided by authors of Open3D</div>
-            </el-radio>
-            <table class="beautiful-table">
+<sly-field title="Architectures" description="Сhoose one of several architectures ">
+     <table class="beautiful-table">
                 <thead>
                 <tr>
                     <th v-for="row in data.modelColumns">
@@ -37,37 +32,50 @@
                 </tr>
                 </tbody>
             </table>
-        </el-tab-pane>
-        <el-tab-pane name="custom" :disabled="true">
-            <el-radio slot="label" v-model="state.weightsInitialization" label="custom" :disabled="true">
-                Custom weights
-            </el-radio>
-            <sly-field title="Path to weights dir" description="Copy path in Team Files">
-                <el-input v-model="state.weightsPath" :disabled="data.done6" placeholder="Path to model dir in Team Files"></el-input>
-            </sly-field>
-        </el-tab-pane>
-        <el-tab-pane name="random" :disabled="data.done6">
-            <el-radio slot="label" v-model="state.weightsInitialization" label="random" :disabled="data.done6">
-                Random initialization
-            </el-radio>
-             <el-radio> Random </el-radio>
+</sly-field>
+<sly-field title="Weights initialization" description="Choose weights initialization type. Pretrained checkpoints provided by authors of Open3D-ML">
+        <el-radio-group v-model="state.weightsInitialization" :disabled="data.done6">
+            <el-radio-button label="KITTI">Pretrained on KITTI 3D</el-radio-button>
+            <el-radio-button label="custom">Download checkpoint</el-radio-button>
+            <el-radio-button label="random">Random initialization</el-radio-button>
+        </el-radio-group>
+</sly-field>
+ <sly-field title="Path to weights dir"
+            description="Copy path in Team Files"
+            v-if="state.weightsInitialization == 'custom'">
+        <el-input v-model="state.weightsPath"
+                  :disabled="data.done6"
+                  placeholder="Path to model dir in Team Files" disabled>
+        </el-input>
+ </sly-field>
 
-            </el-radio>
-        </el-tab-pane>
-    </el-tabs>
+
     <el-button type="primary" class="regular mt10"
                @click="command('download_weights')"
                :loading="!!data.progress6"
-               v-if="!data.done6">
-        Download model weights
+               :disabled="state.weightsInitialization == 'custom'"
+               v-if="!data.done6 && state.weightsInitialization != 'random'">
+        Download weights
     </el-button>
+
+    <el-button type="primary" class="regular mt10"
+           @click="command('random_weights')"
+           v-if="!data.done6 && state.weightsInitialization == 'random'">
+
+        Accept weights
+    </el-button>
+
     <div v-if="data.progress6" class="mt10">
         <div style="color: #20a0ff">{{data.progress6}}: {{data.progressCurrent6}} / {{data.progressTotal6}}</div>
         <el-progress :percentage="data.progressPercent6"></el-progress>
     </div>
-    <div v-if="data.done6">
+    <div v-if="data.done6 && state.weightsInitialization != 'random'">
         <i class="zmdi zmdi-check-circle mr5 mt10" style="color: #13ce66"></i>
         <span style="color: #5a6772;">Model init weights has been successfully downloaded</span>
+    </div>
+        <div v-if="data.done6 && state.weightsInitialization == 'random'">
+        <i class="zmdi zmdi-alert-circle-o mr5 mt10" style="color: orange"></i>
+        <span style="color: #5a6772;">Random weights chosen. Model will be learning from scratch</span>
     </div>
     <el-button type="warning" class="regular mt10" :plain="true"
                @click="state.restartFrom = 6;"

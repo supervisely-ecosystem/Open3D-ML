@@ -16,8 +16,6 @@ def get_models_list():
             "config": "supervisely/train/configs/pointpillars_kitti_sly.yml",
             "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointpillars_kitti_202012221652utc.zip",
             "model": "PointPillars",
-            "params": "Unknown",
-            "flops": "Unknown",
             "MaPKITTIBEV": "61.6",
             "MaPKITTI3D": "55.2"
         },
@@ -25,8 +23,6 @@ def get_models_list():
             "config": "supervisely/train/configs/pointrcnn_kitti_sly.yml",
             "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointrcnn_kitti_202105071146utc.zip",
             "model": "PointRCNN",
-            "params": "Unknown",
-            "flops": "Unknown",
             "MaPKITTIBEV": "78.2",
             "MaPKITTI3D": "65.9"
         },
@@ -38,8 +34,6 @@ def get_models_list():
 def get_table_columns():
     return [
         {"key": "model", "title": "Model", "subtitle": None},
-        {"key": "params", "title": "Params (M)", "subtitle": None},
-        {"key": "flops", "title": "Flops (G)", "subtitle": None},
         {"key": "MaPKITTIBEV", "title": "MaP KITTI BEV", "subtitle": None},
         {"key": "MaPKITTI3D", "title": "MaP KITTI 3D", "subtitle": None},
     ]
@@ -87,13 +81,30 @@ def restart(data, state):
     # state["disabled6"] = True
 
 
+@g.my_app.callback("random_weights")
+@sly.timeit
+@g.my_app.ignore_errors_and_show_dialog_window()
+def random_weights(api: sly.Api, task_id, context, state, app_logger):
+    model_config_example = get_model_info_by_name(state["selectedModel"])['config']
+
+
+    fields = [
+        {"field": "data.done6", "payload": True},
+        {"field": "state.collapsed7", "payload": False},
+        {"field": "state.disabled7", "payload": False},
+        {"field": "state.activeStep", "payload": 7},
+        {"field": "state.localWeightsPath", "payload": None},
+        {"field": "state.modelConfigExample", "payload": model_config_example}
+    ]
+    g.api.app.set_fields(g.task_id, fields)
+
 @g.my_app.callback("download_weights")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def download_weights(api: sly.Api, task_id, context, state, app_logger):
     global local_weights_path
     try:
-        if state["weightsInitialization"] == "custom" or state["weightsInitialization"] == "random":
+        if state["weightsInitialization"] == "custom":
             weights_path_remote = state["weightsPath"]
 
             # get architecture type from previous UI state
@@ -103,7 +114,6 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
             prev_state = sly.json.load_json_file(prev_state_path)
             api.task.set_field(g.task_id, "state.selectedModel", prev_state["selectedModel"])
 
-        if state["weightsInitialization"] == "custom":
             local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_path_remote))
             if sly.fs.file_exists(local_weights_path) is False:
                 file_info = g.api.file.get_info_by_path(g.team_id, weights_path_remote)
@@ -112,6 +122,7 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
                 progress_cb = get_progress_cb(6, "Download weights", file_info.sizeb, is_size=True, min_report_percent=1)
                 g.api.file.download(g.team_id, weights_path_remote, local_weights_path, g.my_app.cache, progress_cb)
                 reset_progress(6)
+
         elif state["weightsInitialization"] == "KITTI":
             weights_url = get_pretrained_weights_by_name(state["selectedModel"])
             local_zip_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_url))

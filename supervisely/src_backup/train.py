@@ -1,13 +1,14 @@
 from ml3d.utils.config import Config
-from ml3d.tf.models import PointPillars
+#from ml3d.tf.models import PointPillars, PointRCNN
 from ml3d.datasets import KITTI
 from ml3d.tf.pipelines.object_detection import ObjectDetection
 
+from open3d.ml.tf.models import PointRCNN
 import pprint
 
-cfg = Config.load_from_file("../train/configs/pointpillars_kitti_sly.yml")
+cfg = Config.load_from_file("../train/configs/pointrcnn_kitti_sly.yml")
 
-model = PointPillars(**cfg.model)
+model = PointRCNN(**cfg.model)
 dataset = KITTI(**cfg.dataset)
 
 pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
