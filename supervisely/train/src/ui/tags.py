@@ -8,9 +8,8 @@ from sly_train_progress import get_progress_cb, reset_progress, init_progress
 
 tag2images = None
 tag2urls = None
-pointclouds_without_figures = []
 disabled_tags = []
-tags_count = {}
+ccount = {}
 
 progress_index = 3
 _preview_height = 120
@@ -19,26 +18,15 @@ _max_examples_count = 12
 _ignore_tags = ["train", "val"]
 _allowed_tag_types = [sly.geometry.cuboid_3d.Cuboid3d]
 
-image_slider_options = {
-    "selectable": False,
-    "height": f"{_preview_height}px"
-}
 
 selected_tags = None
 
 
 def init(data, state):
-    data["tagsBalance"] = None
     state["selectedTags"] = []
     state["tagsInProgress"] = False
-    data["tagsBalanceOptions"] = {
-        "selectable": True,
-        "collapsable": True,
-        "clickableName": False,
-        "clickableSegment": False,
-        "maxHeight": "400px"
-    }
-    data["imageSliderOptions"] = image_slider_options
+    state["classBalance"] = None
+
     data["done3"] = False
     data["skippedTags"] = []
     state["collapsed3"] = True
@@ -46,14 +34,23 @@ def init(data, state):
     init_progress(progress_index, data)
 
 
+def init_classes_switches(state, class_balance):
+    for v in class_balance:
+        state[f"classSwitch{v['class_name']}"] = True
+
+
+
 def restart(data, state):
     data["done3"] = False
 
 
-def init_cache(progress_cb):
-    global tags_count, pointclouds_without_figures
+
+def count_classes(progress_cb, allow_classes=None):
+    allow_all = not isinstance(allow_classes, list)
+
     project_fs = sly.PointcloudProject.read_single(g.project_dir)
     tag_names = []
+    tags_count = {}
     for dataset_fs in project_fs:
         for item_name in dataset_fs:
             item_path, related_images_dir, ann_path = dataset_fs.get_item_paths(item_name)
@@ -61,74 +58,91 @@ def init_cache(progress_cb):
             ann = sly.PointcloudAnnotation.from_json(ann_json, project_fs.meta)
 
             if len(ann.figures) == 0:
-                 pointclouds_without_figures.append(item_name)
+                progress_cb(1)
+                continue
             else:
                 for fig in ann.figures:
                     tag_name = fig.parent_object.obj_class.name
-                    tag_names.append(tag_name)
-
+                    if allow_all:
+                        tag_names.append(tag_name)
+                    elif tag_name in allow_classes:
+                        tag_names.append(tag_name)
+            progress_cb(1)
     for tag_name in tag_names:
         tags_count[tag_name] = tag_names.count(tag_name)
 
-    progress_cb(1)
+    return tags_count
+
+
+def class_balance_table(count_classes_dict, allow_classes=None):
+    if not isinstance(allow_classes, list):
+        allow_classes = list(count_classes_dict.keys())
+
+    class_balance = []
+
+    filtered_count_dict = {k:v for k,v in count_classes_dict.items() if k in allow_classes}
+    if len(filtered_count_dict):
+        max_val = max(filtered_count_dict.values())
+    else:
+        max_val = 1
+
+    for class_name, count_value in count_classes_dict.items():
+        if class_name in allow_classes:
+            percentage = int(abs(abs(count_value - max_val) / max_val * 100 - 100))
+        else:
+            percentage = 0
+
+        enabled = class_name in allow_classes
+        class_balance.append({
+            "class_name": class_name,
+            "count": count_value,
+            "percentage": percentage,
+            "enabled": enabled,
+        })
+
+    return class_balance
+
+@g.my_app.callback("switchChanged")
+@sly.timeit
+@g.my_app.ignore_errors_and_show_dialog_window()
+def on_change(api: sly.Api, task_id, context, state, app_logger):
+    global ccount
+    active_classes = []
+    for item in state['classBalance']:
+        if item['enabled']:
+            active_classes.append(item['class_name'])
+
+    class_balance = class_balance_table(ccount, allow_classes=active_classes)
+    fields = [
+        {"field": "state.classBalance", "payload": class_balance},
+        {"field": "state.selectedTags", "payload": active_classes}
+    ]
+    g.api.app.set_fields(g.task_id, fields)
 
 
 @g.my_app.callback("show_tags")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()
 def show_tags(api: sly.Api, task_id, context, state, app_logger):
-    global tags_count, pointclouds_without_figures
+    global ccount, pointclouds_without_figures
 
     progress = get_progress_cb(progress_index, "Calculate stats", g.project_info.items_count)
 
-    init_cache(progress)
-
-
-    disabled_tags = []
-    _working_tags = tags_count.keys()
-    tags_balance_rows = []
-
-    max_count = -1
-    for tag_meta in g.project_meta.tag_metas:
-        if tag_meta.name not in _working_tags:
-            # tags with 0 images will be ignored automatically
-            disabled_tags.append({
-                "name": tag_meta.name,
-                "color": sly.color.rgb2hex(tag_meta.color),
-                "reason": "0 pointclouds with this tag"
-            })
-
-
-            tags_balance_rows.append({
-                "name": tag_meta.name,
-                "total": tags_count[tag_meta.name],
-                "disabled": True})
-        else:
-
-            tags_balance_rows.append({
-                "name": tag_meta.name,
-                "total": tags_count[tag_meta.name],
-                "disabled": False if tags_count > 0 else True})
-
-        max_count = max(max_count, tags_count[tag_meta.name])
-
-    rows_sorted = sorted(tags_balance_rows, key=lambda k: k["total"], reverse=True)
-    tags_balance = {
-        "maxValue": max_count,
-        "rows": rows_sorted
-    }
-
-    subsample_urls = {tag_name: count for tag_name, count in tags_count.items()}
-
-    reset_progress(progress_index)
+    ccount = count_classes(progress)
+    class_balance = class_balance_table(ccount)
 
     fields = [
         {"field": "state.tagsInProgress", "payload": False},
-        {"field": "data.tagsBalance", "payload": tags_balance},
-        {"field": "data.tag2urls", "payload": subsample_urls},
-        {"field": "data.skippedTags", "payload": disabled_tags}
+        {"field": "state.classBalance", "payload": class_balance},
+        {"field": "state.selectedTags", "payload": [x['class_name'] for x in class_balance]}
     ]
+
+
+    init_classes_switches(state, class_balance)
+
+    reset_progress(progress_index)
     g.api.app.set_fields(g.task_id, fields)
+
 
 
 @g.my_app.callback("use_tags")
