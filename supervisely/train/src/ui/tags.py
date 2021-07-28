@@ -63,6 +63,8 @@ def count_classes(progress_cb, allow_classes=None):
             else:
                 for fig in ann.figures:
                     tag_name = fig.parent_object.obj_class.name
+                    if tag_name == 'DontCare':
+                        continue
                     if allow_all:
                         tag_names.append(tag_name)
                     elif tag_name in allow_classes:

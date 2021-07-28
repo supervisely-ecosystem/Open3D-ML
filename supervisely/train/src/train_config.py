@@ -17,6 +17,7 @@ def generate_config(state):
     cfg['dataset']['val_split'] = g.api.app.get_field(g.task_id, "data.trainImagesCount") + 1
 
     cfg['model']['ckpt_path'] = state['localWeightsPath']
+    cfg['model']['classes'] = state['selectedTags']
     cfg['model']['augment']['PointShuffle'] = state['pointShuffle']
     cfg['model']['augment']['ObjectNoise'] = state['objectNoise']
     # cfg['model']['augment']['RangeFilter'] = state['rangeFilter']
