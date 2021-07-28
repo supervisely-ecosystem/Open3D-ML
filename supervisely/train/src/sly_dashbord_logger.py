@@ -9,13 +9,14 @@ from supervisely_lib import logger
 
 class SlyDashboardLogger:
     def __init__(self):
-        self._lrs = []
-        self.time_sec_tot = datetime.time()
-        self.max_iters = g.api.app.get_field(g.task_id, "state.steps_per_epoch_train")
-        self.progress_epoch = sly.Progress("Epochs", g.api.app.get_field(g.task_id, "state.epochs"))
-        self.progress_iter = sly.Progress("Iterations", self.max_iters)
-        self.acc_tables_bev = []
-        self.acc_tables_3D = []
+        if not g.inference:
+            self._lrs = []
+            self.time_sec_tot = datetime.time()
+            self.max_iters = g.api.app.get_field(g.task_id, "state.steps_per_epoch_train")
+            self.progress_epoch = sly.Progress("Epochs", g.api.app.get_field(g.task_id, "state.epochs"))
+            self.progress_iter = sly.Progress("Iterations", self.max_iters)
+            self.acc_tables_bev = []
+            self.acc_tables_3D = []
 
     @staticmethod
     def _loss_field_map(mode):
