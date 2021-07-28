@@ -3,7 +3,7 @@ import os
 import supervisely_lib as sly
 import sly_globals as g
 import input_project
-import random
+import math
 import tags
 from sly_train_progress import get_progress_cb
 
@@ -24,7 +24,7 @@ def init(data, state):
 
 
 
-def init_cache(progress_cb):
+def init_cache(progress_cb, selected_tags):
     global tags_count, pointclouds_without_figures
     pointclouds_without_figures.clear()
     tags_count.clear()
@@ -39,14 +39,20 @@ def init_cache(progress_cb):
             if len(ann.figures) == 0:
                 pointclouds_without_figures.append(item_name)
             else:
+                t_names = []
                 for fig in ann.figures:
                     tag_name = fig.parent_object.obj_class.name
-                    tag_names.append(tag_name)
-
+                    if tag_name in selected_tags:
+                        t_names.append(tag_name)
+                if len(t_names) == 0:
+                    pointclouds_without_figures.append(item_name)
+                else:
+                    tag_names.extend(t_names)
+            progress_cb(1)
     for tag_name in tag_names:
         tags_count[tag_name] = tag_names.count(tag_name)
 
-    progress_cb(1)
+
 
 
 
@@ -56,8 +62,8 @@ def init_cache(progress_cb):
 def validate_data(api: sly.Api, task_id, context, state, app_logger):
     global tags_count, pointclouds_without_figures, train_size, val_size
 
-    progress = get_progress_cb(3, "Calculate stats", g.project_info.items_count)
-    init_cache(progress)
+    progress = get_progress_cb(4, "Calculate stats", g.project_info.items_count)
+    init_cache(progress, state["selectedTags"])
 
     report.clear()
     final_tags.clear()
@@ -96,7 +102,7 @@ def validate_data(api: sly.Api, task_id, context, state, app_logger):
     report.append({
         "title": "Pointclouds without tags",
         "count": len(pointclouds_without_figures),
-        "type": "warning" if len(tags.pointclouds_without_figures) > 0 else "pass",
+        "type": "warning" if len(pointclouds_without_figures) > 0 else "pass",
         "description": "Such Pointclouds don't have any figures, so they will ignored and will not be used for training."
     })
 
@@ -109,13 +115,22 @@ def validate_data(api: sly.Api, task_id, context, state, app_logger):
         "description": "Number of images (train + val) after collisions removal"
     })
 
+
+
     train_size = g.api.app.get_field(g.task_id, "data.trainImagesCount")
-    new_val_size = final_pc_count - train_size
+    val_size = g.api.app.get_field(g.task_id, "data.valImagesCount")
+
+    old_percentage = val_size / (train_size + val_size)
+    new_val_size = math.floor(final_pc_count * old_percentage)
+    new_train_size = final_pc_count - new_val_size
+
+    sly.logger.warning(new_val_size)
+    sly.logger.warning(new_train_size)
 
     report.append({
         "title": "Train set size",
-        "count": train_size,
-        "type": "error" if train_size < 1 else "pass",
+        "count": new_train_size,
+        "type": "error" if new_train_size < 1 else "pass",
         "description": "Size of training set after collisions removal"
     })
     report.append({
@@ -141,7 +156,8 @@ def validate_data(api: sly.Api, task_id, context, state, app_logger):
         {"field": "data.cntWarnings", "payload": cnt_warnings},
         {"field": "data.pointcloudsWithoutFigures", "payload": pointclouds_without_figures},
         {"field": "data.cntWarnings", "payload": cnt_warnings},
-        {"field": "data.valImagesCount", "payload": new_val_size}
+        {"field": "data.valImagesCount", "payload": new_val_size},
+        {"field": "data.trainImagesCount", "payload": new_train_size}
     ]
     if cnt_errors == 0:
         # save selected tags
