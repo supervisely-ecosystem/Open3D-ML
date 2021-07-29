@@ -9,7 +9,6 @@ import time
 import pprint
 
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a network')
     parser.add_argument('framework',

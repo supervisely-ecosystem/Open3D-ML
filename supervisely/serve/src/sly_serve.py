@@ -5,6 +5,7 @@ import supervisely_lib as sly
 
 import globals as g
 import nn_utils
+from supervisely.src_backup.convert_sly_to_kitti3d import gen_calib_from_img_meta
 
 
 def send_error_data(func):
@@ -19,6 +20,19 @@ def send_error_data(func):
         return value
 
     return wrapper
+
+
+@g.my_app.callback("get_custom_inference_settings")
+@sly.timeit
+@send_error_data
+def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_logger):
+    info = {
+        "threshold": "(Float[0.0, 1.0], default 0.3) Boxes with confidence less than the threshold will"
+                     " be skipped in the response."
+    }
+
+    request_id = context["request_id"]
+    g.my_app.send_response(request_id, data=info)
 
 
 @g.my_app.callback("get_output_classes_and_tags")
@@ -44,24 +58,45 @@ def get_session_info(api: sly.Api, task_id, context, state, app_logger):
     g.my_app.send_response(request_id, data=info)
 
 
+def _inference(api, pointcloud_id, threshold=None):
+    local_pointcloud_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ".pcd")
+    local_calib_path = local_pointcloud_path + ".txt"
+    api.pointcloud.download_path(pointcloud_id, local_pointcloud_path)
+    rel_meta = api.pointcloud.get_list_related_images(pointcloud_id)
+    assert len(rel_meta) == 1  # Kitti has 1 calib file
+    gen_calib_from_img_meta(rel_meta[0], local_calib_path)
+
+    results = nn_utils.inference_model(g.model, local_pointcloud_path, local_calib_path,
+                                       thresh=threshold if threshold is not None else 0.3)
+
+    sly.fs.silent_remove(local_pointcloud_path)
+    sly.fs.silent_remove(local_calib_path)
+    return results
+
+
 @g.my_app.callback("inference_pointcloud_id")
 @sly.timeit
 @send_error_data
 def inference_pointcloud_id(api: sly.Api, task_id, context, state, app_logger):
     app_logger.debug("Input data", extra={"state": state})
-    local_pointcloud_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ".pcd")
-    api.pointcloud.download_path(state["pointcloud_id"], local_pointcloud_path)
-    #
-    results = nn_utils.inference_model(g.model, local_pointcloud_path)
-    # sly.fs.silent_remove(local_pointclod_path)
+    results = _inference(api, state["pointcloud_id"], state.get("threshold"))
+    request_id = context["request_id"]
+    g.my_app.send_response(request_id, data={"results": results.to_json()})
 
+
+@g.my_app.callback("inference_pointcloud_ids")
+@sly.timeit
+@send_error_data
+def inference_pointcloud_ids(api: sly.Api, task_id, context, state, app_logger):
+    app_logger.debug("Input data", extra={"state": state})
+    results = []
+    for pointcloud_id in state["pointcloud_ids"]:
+        result = _inference(api, pointcloud_id, state.get("threshold"))
+        results.append(result.to_json())
 
     request_id = context["request_id"]
     g.my_app.send_response(request_id, data={"results": results})
 
-def debug_inference():
-    results = nn_utils.inference_model(g.model,  "/data/test_cloud.pcd")
-    print(results)
 
 def main():
     sly.logger.info("Script arguments", extra={
@@ -77,17 +112,6 @@ def main():
 
     g.my_app.run()
 
+
 if __name__ == "__main__":
-    sly.logger.info("Script arguments", extra={
-        "context.teamId": g.team_id,
-        "context.workspaceId": g.workspace_id,
-        "modal.state.slyFile": g.remote_weights_path,
-        "device": g.device
-    })
-
-    nn_utils.download_model_and_configs()
-    nn_utils.construct_model_meta()
-    nn_utils.deploy_model()
-
-    #sly.main_wrapper("main", main)
-    debug_inference()
+    sly.main_wrapper("main", main)
