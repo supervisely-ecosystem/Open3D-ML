@@ -12,6 +12,10 @@ def main():
         "modal.state.slyProjectId": g.project_id,
     })
 
+    # TODO: fix class choice (now only 3 for pillars and 2 for rcnn)
+    # TODO: fix charts for pointrcnn
+    # TODO: add config details for pointrcnn
+    # TODO: add custom checkpoint loading
     g.my_app.compile_template(g.root_source_dir)
 
     data = {}

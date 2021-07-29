@@ -26,6 +26,7 @@ def send_error_data(func):
 @sly.timeit
 @send_error_data
 def get_custom_inference_settings(api: sly.Api, task_id, context, state, app_logger):
+    # TODO: it should be YML with comments
     info = {
         "threshold": "(Float[0.0, 1.0], default 0.3) Boxes with confidence less than the threshold will"
                      " be skipped in the response."
