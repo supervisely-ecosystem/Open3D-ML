@@ -1,7 +1,7 @@
 import logging
 import os
 from pathlib import Path
-
+from supervisely_lib import logger
 
 class LogRecord(logging.LogRecord):
     """Class for logging information."""

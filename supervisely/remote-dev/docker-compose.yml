@@ -1,0 +1,14 @@
+version: "2.3"
+services:
+  open3d:
+    shm_size: '20gb'
+    runtime: 'nvidia'
+    build: 
+      context: .
+      dockerfile: Dockerfile-dev
+      args:
+        IMAGE: supervisely/open3d:1.0.0
+    ports:
+      - "5555:22"
+    volumes:
+      - "./data:/data"

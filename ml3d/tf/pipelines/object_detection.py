@@ -1,27 +1,43 @@
-import tensorflow as tf
 import logging
-import numpy as np
-from tqdm import tqdm
 import re
-
 from datetime import datetime
-
-from os.path import exists, join
+from os.path import join
 from pathlib import Path
+
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+
 
 from .base_pipeline import BasePipeline
 from ..dataloaders import TFDataloader
-from ...utils import make_dir, PIPELINE, LogRecord, get_runid, code2md
 from ...datasets.utils import BEVBox3D
-
 from ...metrics.mAP import mAP
+from ...utils import make_dir, PIPELINE, LogRecord, get_runid, code2md
+
+
+from supervisely.train.src.sly_dashbord_logger import SlyDashboardLogger
+
+from supervisely_lib import logger
+
+
+class SlyHandler(logging.StreamHandler):
+    def emit(self, record):
+        msg = self.format(record)
+        logger.info(msg)
 
 logging.setLogRecordFactory(LogRecord)
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(levelname)s - %(asctime)s - %(module)s - %(message)s',
+   level=logging.INFO,
+   format='%(levelname)s - %(asctime)s - %(module)s - %(message)s',
 )
 log = logging.getLogger(__name__)
+
+sh = SlyHandler()
+sh.setLevel(logging.INFO)
+log.addHandler(sh)
+
+sly_dashboard = SlyDashboardLogger()
 
 
 class ObjectDetection(BasePipeline):
@@ -95,7 +111,7 @@ class ObjectDetection(BasePipeline):
             results = self.run_inference(data)
             pred.append(results[0])
 
-        #dataset.save_test_result(pred, attr)
+        # dataset.save_test_result(pred, attr)
 
     def run_valid(self):
         model = self.model
@@ -133,7 +149,7 @@ class ObjectDetection(BasePipeline):
                 if not l in self.valid_losses:
                     self.valid_losses[l] = []
                 self.valid_losses[l].append(v.numpy())
-
+            sly_dashboard.log(mode='val', loss=self.valid_losses)
             # convert to bboxes for mAP evaluation
             boxes = model.inference_end(results, data)
             pred.extend([BEVBox3D.to_dicts(b) for b in boxes])
@@ -171,6 +187,7 @@ class ObjectDetection(BasePipeline):
                 c + ":", *ap[i, :, 0]))
         log.info("Overall: {:.2f}".format(np.mean(ap[:, -1])))
         self.valid_losses["mAP BEV"] = np.mean(ap[:, -1])
+        sly_dashboard.submit_map_table("bev", difficulties, model.classes, ap)
 
         ap = mAP(pred,
                  gt,
@@ -188,6 +205,8 @@ class ObjectDetection(BasePipeline):
                 c + ":", *ap[i, :, 0]))
         log.info("Overall: {:.2f}".format(np.mean(ap[:, -1])))
         self.valid_losses["mAP 3D"] = np.mean(ap[:, -1])
+
+        sly_dashboard.submit_map_table("3D", difficulties, model.classes, ap)
 
     def run_train(self):
         model = self.model
@@ -256,6 +275,7 @@ class ObjectDetection(BasePipeline):
                     self.losses[l].append(v.numpy())
                     desc += " %s: %.03f" % (l, v.numpy())
                 desc += " > loss: %.03f" % loss_sum.numpy()
+                sly_dashboard.log(mode='train', epoch=epoch, iter=process_bar.n, loss=self.losses)
                 process_bar.set_description(desc)
                 process_bar.refresh()
 
