@@ -100,7 +100,7 @@ def validate_data(api: sly.Api, task_id, context, state, app_logger):
     })
 
     report.append({
-        "title": "Pointclouds without tags",
+        "title": "Pointclouds without figures",
         "count": len(pointclouds_without_figures),
         "type": "warning" if len(pointclouds_without_figures) > 0 else "pass",
         "description": "Such Pointclouds don't have any figures, so they will ignored and will not be used for training."
@@ -109,10 +109,10 @@ def validate_data(api: sly.Api, task_id, context, state, app_logger):
 
     final_pc_count = g.project_info.items_count - len(pointclouds_without_figures)
     report.append({
-        "title": "Final images count",
+        "title": "Final pointclouds count",
         "count": final_pc_count,
         "type": "error" if final_pc_count == 0 else "pass",
-        "description": "Number of images (train + val) after collisions removal"
+        "description": "Number of pointclouds (train + val) after collisions removal"
     })
 
 

@@ -89,7 +89,7 @@ pipeline:
     weight_decay: 0.01
 
   # evaluation properties
-  overlaps: [0.5, 0.5, 0.7]
+  overlaps: [0.5]
   similar_classes: {
     Van: Car,
     Truck: Car,

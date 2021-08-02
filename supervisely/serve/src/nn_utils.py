@@ -152,7 +152,7 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
         gen_shapes).prefetch(tf.data.experimental.AUTOTUNE)
 
     annotations = []
-
+    # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
         pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1

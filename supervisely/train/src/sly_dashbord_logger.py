@@ -51,14 +51,16 @@ class SlyDashboardLogger:
                       float(self.progress_iter.current) / float(self.progress_iter.total)
 
         lfm = self._loss_field_map(mode)
-        loss['loss_sum'] = [float(sum(sum(loss.values(), [])))]
+        all_losses = np.array(list(loss.values())[:3])
+        sum_losses = float(sum(all_losses.T[-1]))
+        loss['loss_sum'] = [sum_losses]
 
         for loss_name, loss_value in loss.items():
             try:
                 field_name =  f"data.{lfm[loss_name]}.series[0].data"
             except KeyError:
                 continue
-            loss_value =  round(float(loss_value[0]),6)
+            loss_value =  round(float(loss_value[-1]),6)
             fields.extend([{"field": field_name, "payload": [[epoch_float, loss_value]], "append": True}])
 
         g.api.app.set_fields(g.task_id, fields)
