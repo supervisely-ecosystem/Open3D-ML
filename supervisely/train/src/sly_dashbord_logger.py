@@ -52,7 +52,7 @@ class SlyDashboardLogger:
 
         lfm = self._loss_field_map(mode)
         all_losses = np.array(list(loss.values())[:3])
-        sum_losses = float(sum(all_losses.T[-1]))
+        sum_losses = round(float(sum(all_losses.T[-1])), 6)
         loss['loss_sum'] = [sum_losses]
 
         for loss_name, loss_value in loss.items():

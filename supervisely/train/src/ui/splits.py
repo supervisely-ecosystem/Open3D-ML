@@ -58,17 +58,6 @@ def verify_train_val_sets(train_set, val_set):
     if val_set == 0:
         raise ValueError("Val set is empty, check or change split configuration")
 
-
-# def save_set_to_json(path, items):
-#     res = []
-#     for item in items:
-#         res.append({
-#             "img_path": item.img_path,
-#             "ann_path": item.ann_path
-#         })
-#     sly.json.dump_json_file(res, path)
-
-
 @g.my_app.callback("create_splits")
 @sly.timeit
 @g.my_app.ignore_errors_and_show_dialog_window()

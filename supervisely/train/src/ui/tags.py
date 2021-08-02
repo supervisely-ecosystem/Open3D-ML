@@ -90,7 +90,8 @@ def class_balance_table(count_classes_dict, allow_classes=None):
 
     for class_name, count_value in count_classes_dict.items():
         if class_name in allow_classes:
-            percentage = int(abs(abs(count_value - max_val) / max_val * 100 - 100))
+            percentage = int(count_value / sum(list(filtered_count_dict.values())) * 100)  # by count
+            #percentage = int(abs(abs(count_value - max_val) / max_val * 100 - 100))  # relative
         else:
             percentage = 0
 
