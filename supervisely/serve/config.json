@@ -23,6 +23,6 @@
     "deployed_nn_det3d"
   ],
   "context_menu": {
-    "target": ["files_file"],
+    "target": ["files_file"]
   }
 }
