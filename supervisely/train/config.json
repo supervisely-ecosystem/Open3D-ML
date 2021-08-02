@@ -3,7 +3,7 @@
   "type": "app",
   "categories": [
     "neural network",
-    "detection"
+    "pointcloud"
   ],
   "description": "Dashboard to configure, start and monitor training",
   "docker_image": "supervisely/base-pytorch:6.0.22",
@@ -11,12 +11,12 @@
   "gui_template": "supervisely/train/src/gui.html",
   "task_location": "workspace_tasks",
   "need_gpu": true,
-  "icon": "https://i.imgur.com/wc2STfP.png",
+  "icon": "https://img.icons8.com/fluency/100/000000/3d-scale.png",
   "icon_cover": true,
   "context_menu": {
-    "target": ["images_project"],
+    "target": ["pointclouds_project"],
     "context_root": "Neural Networks",
-    "context_category": "MM Classification"
+    "context_category": "Open3d-ml"
   },
   "instance_version": "6.4.18"
 }
