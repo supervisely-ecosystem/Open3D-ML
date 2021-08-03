@@ -11,7 +11,7 @@
   "gui_template": "supervisely/train/src/gui.html",
   "task_location": "workspace_tasks",
   "need_gpu": true,
-  "icon": "https://img.icons8.com/fluency/100/000000/3d-scale.png",
+  "icon": "https://imgur.com/a/9dX81D1",
   "icon_cover": true,
   "context_menu": {
     "target": ["pointclouds_project"],
