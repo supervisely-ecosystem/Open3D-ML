@@ -106,22 +106,26 @@ def download_weights(api: sly.Api, task_id, context, state, app_logger):
     try:
         if state["weightsInitialization"] == "custom":
             weights_path_remote = state["weightsPath"]
+            filename = sly.fs.get_file_name(weights_path_remote)
 
-            # get architecture type from previous UI state
-            prev_state_path_remote = os.path.join(str(Path(weights_path_remote).parents[1]), "info/ui_state.json")
-            prev_state_path = os.path.join(g.my_app.data_dir, "ui_state.json")
-            api.file.download(g.team_id, prev_state_path_remote, prev_state_path)
-            prev_state = sly.json.load_json_file(prev_state_path)
-            api.task.set_field(g.task_id, "state.selectedModel", prev_state["selectedModel"])
+            local_weights_dir = os.path.join(g.my_app.data_dir, sly.fs.get_file_name(weights_path_remote))
+            local_weights_path = os.path.join(local_weights_dir, sly.fs.get_file_name_with_ext(weights_path_remote))
+            local_index_path  = os.path.join(local_weights_dir, filename + '.index')
 
-            local_weights_path = os.path.join(g.my_app.data_dir, sly.fs.get_file_name_with_ext(weights_path_remote))
-            if sly.fs.file_exists(local_weights_path) is False:
-                file_info = g.api.file.get_info_by_path(g.team_id, weights_path_remote)
-                if file_info is None:
-                    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), weights_path_remote)
-                progress_cb = get_progress_cb(6, "Download weights", file_info.sizeb, is_size=True, min_report_percent=1)
-                g.api.file.download(g.team_id, weights_path_remote, local_weights_path, g.my_app.cache, progress_cb)
-                reset_progress(6)
+            index_path_remote = os.path.join(os.path.dirname(weights_path_remote), filename + '.index')
+
+            sly.fs.mkdir(local_weights_dir, remove_content_if_exists=True)
+
+            file_info = g.api.file.get_info_by_path(g.team_id, weights_path_remote)
+            if file_info is None:
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), weights_path_remote)
+            progress_cb = get_progress_cb(6, "Download weights", file_info.sizeb, is_size=True, min_report_percent=1)
+            g.api.file.download(g.team_id, weights_path_remote, local_weights_path, g.my_app.cache, progress_cb)
+            g.api.file.download(g.team_id, index_path_remote, local_index_path, g.my_app.cache)
+
+            local_weights_path = os.path.join(local_weights_dir, filename)
+
+            reset_progress(6)
 
         elif state["weightsInitialization"] == "KITTI":
             weights_url = get_pretrained_weights_by_name(state["selectedModel"])

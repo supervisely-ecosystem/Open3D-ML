@@ -41,11 +41,11 @@
         </el-radio-group>
 </sly-field>
  <sly-field title="Path to weights dir"
-            description="Copy path in Team Files"
+            description="Copy path from Team Files. Expected filename like: ckpt-YY.data-00000-0000Z. The ckpt-YY.index file will be loaded automatically. ."
             v-if="state.weightsInitialization == 'custom'">
         <el-input v-model="state.weightsPath"
                   :disabled="data.done6"
-                  placeholder="Path to model dir in Team Files" disabled>
+                  placeholder="Path to model weights in Team Files">
         </el-input>
  </sly-field>
 
@@ -53,7 +53,6 @@
     <el-button type="primary" class="regular mt10"
                @click="command('download_weights')"
                :loading="!!data.progress6"
-               :disabled="state.weightsInitialization == 'custom'"
                v-if="!data.done6 && state.weightsInitialization != 'random'">
         Download weights
     </el-button>
