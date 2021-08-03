@@ -13,8 +13,9 @@ class SlyDashboardLogger:
             self._lrs = []
             self.time_sec_tot = datetime.time()
             self.max_iters = g.api.app.get_field(g.task_id, "state.steps_per_epoch_train")
+            self.batch_size = g.api.app.get_field(g.task_id, "state.batchSizeTrain")
             self.progress_epoch = sly.Progress("Epochs", g.api.app.get_field(g.task_id, "state.epochs"))
-            self.progress_iter = sly.Progress("Iterations", self.max_iters)
+            self.progress_iter = sly.Progress("Iterations", int(self.max_iters / self.batch_size) )
             self.acc_tables_bev = []
             self.acc_tables_3D = []
 
@@ -37,11 +38,10 @@ class SlyDashboardLogger:
         if epoch:
             self.progress_epoch.set_current_value(epoch)
         if iter and mode != 'val':
-            self.progress_iter.set_current_value(iter)
+            self.progress_iter.set_current_value(iter + 1)
         if mode == 'val':
             self.progress_iter.set_current_value(0)
             fields.extend([{"field": "state.curEpochAcc", "payload": self.progress_epoch.current}])
-
 
 
         add_progress_to_request(fields, "Epoch", self.progress_epoch)
