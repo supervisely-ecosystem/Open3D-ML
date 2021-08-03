@@ -8,30 +8,21 @@ def save_config(cfg, config_save_path):
         yaml.dump(cfg, f, sort_keys=False)
 
 
+
 def classes_ranges_and_sizes_pointpillars(cfg, state):
     classes = state['selectedTags']
-    default_classes = cfg['model']['classes']
-    default_ranges = cfg['model']['head']['ranges']
-    default_sizes = cfg['model']['head']['sizes']
     default_iou = cfg['model']['head']['iou_thr']
+    ranges_dict = g.api.app.get_field(g.task_id, "data.ranges")
+    sizes_dict = g.api.app.get_field(g.task_id, "data.sizes")
 
-    if classes == default_classes:
-        return cfg
-
+    new_iou = []
     new_ranges = []
     new_sizes = []
-    new_iou = []
 
     for cl in classes:
-        try:
-            ind = default_classes.index(cl)
-            new_ranges.append(default_ranges[ind])
-            new_sizes.append(default_sizes[ind])
-            new_iou.append(default_iou[ind])
-        except ValueError:
-            new_ranges.append(default_ranges[0]) # TODO: calc it!
-            new_sizes.append(default_sizes[0])
-            new_iou.append(default_iou[0])
+        new_iou.append(default_iou[0])
+        new_ranges.append(ranges_dict[cl])
+        new_sizes.append(sizes_dict[cl])
 
     cfg['model']['classes'] = classes
     cfg['model']['head']['ranges'] = new_ranges
