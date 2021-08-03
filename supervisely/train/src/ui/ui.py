@@ -37,6 +37,8 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
     data = {}
     state = {}
 
+    monitoring.init(data, state)
+
     if restart_from_step <= 2:
         train_val_split.init(g.project_info, g.project_meta, data, state)
     if restart_from_step <= 3:
@@ -66,6 +68,7 @@ def restart(api: sly.Api, task_id, context, state, app_logger):
             hyperparameters_python.restart(data, state)
         else:
             hyperparameters_python.init(data, state)
+
 
     fields = [
         {"field": "data", "payload": data, "append": True, "recursive": False},

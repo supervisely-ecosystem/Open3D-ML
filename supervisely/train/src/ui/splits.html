@@ -48,7 +48,7 @@
                 </el-table-column>
             </el-table>
         </el-tab-pane>
-        <el-tab-pane name="tags" :disabled="data.done2">
+        <el-tab-pane name="tags" :disabled="true" >
             <el-radio slot="label" v-model="state.splitMethod" label="tags" :disabled="true">
                 Based on image tags
                 <div>Images should have assigned train or val tag</div>
@@ -95,7 +95,7 @@
                 </el-select>
             </sly-field>
         </el-tab-pane>
-        <el-tab-pane name="datasets" :disabled="data.done2">
+        <el-tab-pane name="datasets" :disabled="true">
             <el-radio slot="label" v-model="state.splitMethod" label="datasets" :disabled="true">
                 Based on datasets
                 <div>Select one or several datasets for every split</div>
