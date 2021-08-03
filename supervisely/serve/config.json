@@ -6,7 +6,7 @@
     "pointcloud"
   ],
   "description": "Deploy model as REST API service",
-  "docker_image": "supervisely/base-pytorch:6.1.92",
+  "docker_image": "docker.deepsystems.io/open3dml",
   "main_script": "supervisely/serve/src/sly_serve.py",
   "modal_template": "supervisely/serve/src/modal.html",
   "modal_template_state": {

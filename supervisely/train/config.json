@@ -6,7 +6,7 @@
     "pointcloud"
   ],
   "description": "Dashboard to configure, start and monitor training",
-  "docker_image": "supervisely/base-pytorch:6.0.22",
+  "docker_image": "docker.deepsystems.io/open3dml",
   "main_script": "supervisely/train/src/sly_train.py",
   "gui_template": "supervisely/train/src/gui.html",
   "task_location": "workspace_tasks",
