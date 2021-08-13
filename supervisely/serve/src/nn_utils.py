@@ -32,31 +32,56 @@ def download_model_and_configs():
 
 
 
+# def init_model():
+#     cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+#
+#     gpus = tf.config.experimental.list_physical_devices('GPU')
+#     if gpus:
+#         try:
+#             for gpu in gpus:
+#                 tf.config.experimental.set_memory_growth(gpu, True)
+#             if g.device == 'cpu':
+#                 tf.config.set_visible_devices([], 'GPU')
+#             elif g.device == 'cuda':
+#                 tf.config.set_visible_devices(gpus[0], 'GPU')
+#             else:
+#                 idx = g.device.split(':')[1]
+#                 tf.config.set_visible_devices(gpus[int(idx)], 'GPU')
+#         except RuntimeError as e:
+#             sly.logger.exception(e)
+#
+#     Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
+#     model = Model(**cfg.model)
+#     pipeline = ObjectDetection(model=model)
+#     pipeline.load_ckpt(g.local_ckpt_path)
+#
+#     return pipeline
+
 def init_model():
-    cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+    from ml3d.utils.config import Config
+    from ml3d.tf.models import PointPillars
+    from ml3d.datasets import KITTI
+    from ml3d.tf.pipelines import ObjectDetection
+    import pprint
 
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            if g.device == 'cpu':
-                tf.config.set_visible_devices([], 'GPU')
-            elif g.device == 'cuda':
-                tf.config.set_visible_devices(gpus[0], 'GPU')
-            else:
-                idx = g.device.split(':')[1]
-                tf.config.set_visible_devices(gpus[int(idx)], 'GPU')
-        except RuntimeError as e:
-            sly.logger.exception(e)
+    cfg = Config.load_from_file("../../train/configs/pointpillars_kitti_sly.yml")
 
-    Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
-    model = Model(**cfg.model)
-    pipeline = ObjectDetection(model=model)
-    pipeline.load_ckpt(g.local_ckpt_path)
+    model = PointPillars(**cfg.model)
+    dataset = KITTI(**cfg.dataset)
 
+    pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
+    pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12")  # Pretrained
+    # pipeline.load_ckpt("./logs/PointPillars_KITTI_tf/checkpoint/ckpt-2")
+
+    # TRAIN
+    pipeline.cfg_tb = {
+        "readme": "readme",
+        "cmd_line": "cmd_line",
+        "dataset": pprint.pformat(cfg.dataset, indent=2),
+        "model": pprint.pformat(cfg.model, indent=2),
+        "pipeline": pprint.pformat(cfg.pipeline, indent=2),
+    }
     return pipeline
-
 
 def construct_model_meta():
     cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
@@ -79,6 +104,9 @@ def deploy_model():
 
 def read_pcd(local_pointcloud_path):
     pcloud = o3d.io.read_point_cloud(local_pointcloud_path)
+    # R = pcloud.get_rotation_matrix_from_xyz((0, 0, np.pi))
+    # center = pcloud.get_center()
+    # pcloud = pcloud.rotate(R, center)
     points = np.asarray(pcloud.points, dtype=np.float32)
     intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
     pc = np.hstack((points, intensity)).astype("float32")
@@ -121,6 +149,7 @@ def filter_prediction_threshold(predictions, thresh):
             filtered_pred.append(bevbox)
     return filtered_pred
 
+
 def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     """Inference 1 pointcloud with the detector.
 
@@ -135,12 +164,12 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     pc = read_pcd(local_pointcloud_path)
     calib = KITTI.read_calib(calib_path)
 
-    reduced_pc = DataProcessing.remove_outside_points(
-        pc, calib['world_cam'], calib['cam_img'], [375, 1242])  # TODO: is it necessary?
+    # reduced_pc = DataProcessing.remove_outside_points(
+    #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])  # TODO: is it necessary?
 
     data = {
-        'point': reduced_pc,
-        'full_point': pc,
+        'point': pc,
+        #'full_point': pc,
         'feat': None,
         'calib': calib,
         'bounding_boxes': None,
@@ -155,6 +184,7 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
+        print(pred)
         pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
         annotation = prediction_to_annotation(pred_by_thresh)
         annotations.append(annotation)

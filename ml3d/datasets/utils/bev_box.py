@@ -189,7 +189,7 @@ class BEVBox3D(BoundingBox3D):
     def to_dict(self):
         """Convert data for evaluation:"""
         return {
-            'bbox': self.to_camera(),
+            'bbox': self.to_xyzwhlr(),
             'label': self.label_class,
             'score': self.confidence,
             'difficulty': self.level

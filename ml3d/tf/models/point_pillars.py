@@ -141,7 +141,7 @@ class PointPillars(BaseModel):
         """
         inputs = unpack(inputs[0], inputs[-2])
         x = self.extract_feats(inputs, training=training)
-        outs = self.bbox_head(x, training=training)
+        outs = self.bbox_head(x, training=True)
 
         return outs
 
@@ -246,7 +246,7 @@ class PointPillars(BaseModel):
                                   points[:, :3] < max_val),
                    axis=-1))]
 
-        new_data = {'point': points, 'calib': data['calib']}
+        new_data = {'point': points, 'calib': data.get('calib', {})}
 
         if attr['split'] not in ['test', 'testing']:
             new_data['bbox_objs'] = data['bounding_boxes']
@@ -387,7 +387,7 @@ class PointPillars(BaseModel):
                 yaw = bbox[-1]
                 name = self.lbl2name.get(label, "ignore")
                 inference_result[-1].append(
-                    BEVBox3D(pos, dim, yaw, name, score, world_cam, cam_img))
+                    BEVBox3D(pos, dim, yaw, name, score, None, None))
 
         return inference_result
 
@@ -935,8 +935,11 @@ class Anchor3DHead(tf.keras.layers.Layer):
         self.bbox_coder = BBoxCoder()
         self.box_code_size = 7
 
+        print(self.num_classes)
+        print(self.num_anchors)
         #Initialize neural network layers of the head.
         self.cls_out_channels = self.num_anchors * self.num_classes
+        print(self.cls_out_channels)
 
         kernel_init = tf.keras.initializers.RandomNormal(stddev=0.01)
         bias_init = tf.keras.initializers.Constant(
