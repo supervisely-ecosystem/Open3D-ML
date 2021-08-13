@@ -68,7 +68,7 @@ def _convert_label_to_geometry(label):
     return geometries
 
 
-def convert_label_to_annotation(label):
+def convert_label_to_annotation(label, meta):
     geometries = _convert_label_to_geometry(label)
     figures = []
     objs = []
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         item_path = dataset_fs.generate_item_path(item_name)
 
         convert_bin_to_pcd(bin_path, item_path)  # automatically save pointcloud to itempath
-        ann = convert_label_to_annotation(kitti_label)
+        ann = convert_label_to_annotation(kitti_label, meta)
 
         dataset_fs.add_item_file(item_name, item_path, ann)
 

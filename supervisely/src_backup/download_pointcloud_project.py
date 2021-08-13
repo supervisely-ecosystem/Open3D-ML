@@ -4,13 +4,16 @@ import shutil
 import supervisely_lib as sly
 from supervisely_lib.project.pointcloud_project import download_pointcloud_project
 
+import convert_sly_to_kitti3d
 if __name__ == "__main__":
     dest_dir = '/data/sly_project'
     shutil.rmtree(dest_dir, ignore_errors=True)  # WARNING!
-    project_id = 5515
+    project_id = 5911
     api = sly.Api.from_env()
-#(api, project_id, dest_dir, dataset_ids=None, download_items=True, log_progress=False):
+
     download_pointcloud_project(api, project_id, dest_dir, dataset_ids=None, download_items=True, log_progress=True)
+
 
     sly.logger.info('PROJECT_DOWNLOADED', extra={'dest_dir': dest_dir,
                                                  'datasets': [x for x in os.listdir(dest_dir) if 'json' not in x]})
+    convert_sly_to_kitti3d.convert(dest_dir)

@@ -62,12 +62,13 @@ def annotation_to_kitti_label(annotation_path, calib_path, kiiti_label_path, met
                        cam_img=calib['cam_img'])
 
         objects.append(obj)
-
+    if not objects:
+        return False
     with open(kiiti_label_path, 'w') as f:
         for box in objects:
             f.write(box.to_kitti_format(box.confidence))
             f.write('\n')
-
+    return True
 
 def mkline(arr):
     return " ".join(map(str, arr))
@@ -120,11 +121,14 @@ def convert(project_dir, exclude_items=[]):
             bin_path = os.path.join(bin_dir, item_name_without_ext + '.bin')
             image_path = os.path.join(image_dir, item_name_without_ext + '.png')
 
-            pcd_to_bin(item_path, bin_path)
+
             realted_img_path, img_meta = dataset_fs.get_related_images(item_name)[0]  # ONLY 1 Img
 
             gen_calib_from_img_meta(img_meta, calib_path)
-            annotation_to_kitti_label(ann_path, calib_path=calib_path, kiiti_label_path=label_path, meta=project_fs.meta)
+            labels_exists = annotation_to_kitti_label(ann_path, calib_path=calib_path, kiiti_label_path=label_path, meta=project_fs.meta)
+            if not labels_exists:
+                continue
+            pcd_to_bin(item_path, bin_path)
             shutil.copy(src=realted_img_path, dst=image_path)
             sly.logger.info(f"{item_name} converted to kitti .bin")
     sly.logger.info(f"Dataset converted to kitti and stored at {kitti_dataset_path}")

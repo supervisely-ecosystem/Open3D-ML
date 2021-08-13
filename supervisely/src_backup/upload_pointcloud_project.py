@@ -1,6 +1,7 @@
 import os
 
 import supervisely_lib as sly
+import tqdm
 from supervisely_lib.api.module_api import ApiField
 from supervisely_lib.io.json import load_json_file
 from supervisely_lib.video_annotation.key_id_map import KeyIdMap
@@ -30,7 +31,7 @@ if __name__ == "__main__":
         dataset = api.dataset.create(project.id, dataset_fs.name, change_name_if_conflict=True)
         sly.logger.info("dataset {!r} [id={!r}] has been created".format(dataset.name, dataset.id))
 
-        for item_name in dataset_fs:
+        for item_name in tqdm.tqdm(dataset_fs):
             item_path, related_images_dir, ann_path = dataset_fs.get_item_paths(item_name)
 
             item_meta = {}
