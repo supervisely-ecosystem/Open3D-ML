@@ -6,7 +6,7 @@ import train_config
 def init_script_arguments(state):
     sys.argv.append("tf")
     #sys.argv.append(os.path.join(g.root_source_dir, "configs/resnet/resnet18_b16x8_cifar10.py"))
-    sys.argv.extend(["--cfg_file", state['trainConfigPath']])
+    sys.argv.extend(["--cfg_file", "/data/INFERENCE_CKPT/pointpillars_lyft_sly.yml"])
     sys.argv.extend(["--main_log_dir", g.checkpoints_dir])
     sys.argv.extend(["--pipeline", "ObjectDetection"])
 

@@ -61,17 +61,16 @@ def get_session_info(api: sly.Api, task_id, context, state, app_logger):
 
 def _inference(api, pointcloud_id, threshold=None):
     local_pointcloud_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ".pcd")
-    local_calib_path = local_pointcloud_path + ".txt"
+    #local_calib_path = local_pointcloud_path + ".txt"
     api.pointcloud.download_path(pointcloud_id, local_pointcloud_path)
-    rel_meta = api.pointcloud.get_list_related_images(pointcloud_id)
-    assert len(rel_meta) == 1  # Kitti has 1 calib file
-    gen_calib_from_img_meta(rel_meta[0], local_calib_path)
-
-    results = nn_utils.inference_model(g.model, local_pointcloud_path, local_calib_path,
+    #rel_meta = api.pointcloud.get_list_related_images(pointcloud_id)
+    #assert len(rel_meta) == 1  # Kitti has 1 calib file
+    #gen_calib_from_img_meta(rel_meta[0], local_calib_path)\
+    results = nn_utils.inference_model(g.model, local_pointcloud_path, None,
                                        thresh=threshold if threshold is not None else 0.3)
 
     sly.fs.silent_remove(local_pointcloud_path)
-    sly.fs.silent_remove(local_calib_path)
+
     return results
 
 
@@ -92,7 +91,12 @@ def inference_pointcloud_ids(api: sly.Api, task_id, context, state, app_logger):
     app_logger.debug("Input data", extra={"state": state})
     results = []
     for pointcloud_id in state["pointcloud_ids"]:
-        result = _inference(api, pointcloud_id, state.get("threshold"))
+        try:
+            result = _inference(api, pointcloud_id, state.get("threshold"))
+        except Exception as e:
+            print(e)
+            raise e
+            exit(1)
         results.append(result.to_json())
 
     request_id = context["request_id"]

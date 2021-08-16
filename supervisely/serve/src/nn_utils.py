@@ -6,7 +6,7 @@ import open3d as o3d
 from ml3d.tf.pipelines import ObjectDetection
 import numpy as np
 from ml3d.datasets.utils import DataProcessing
-from ml3d.datasets.kitti import KITTI
+from ml3d.datasets.lyft import Lyft
 import supervisely_lib as sly
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
@@ -60,18 +60,17 @@ def download_model_and_configs():
 def init_model():
     from ml3d.utils.config import Config
     from ml3d.tf.models import PointPillars
-    from ml3d.datasets import KITTI
+    from ml3d.datasets import Lyft
     from ml3d.tf.pipelines import ObjectDetection
     import pprint
 
-    cfg = Config.load_from_file("../../train/configs/pointpillars_kitti_sly.yml")
+    cfg = Config.load_from_file("/data/INFERENCE_CKPT/pointpillars_lyft_sly.yml")
 
     model = PointPillars(**cfg.model)
-    dataset = KITTI(**cfg.dataset)
+    dataset = Lyft(**cfg.dataset)
 
     pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
-    pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12")  # Pretrained
-    # pipeline.load_ckpt("./logs/PointPillars_KITTI_tf/checkpoint/ckpt-2")
+    pipeline.load_ckpt("/data/INFERENCE_CKPT/ckpt-66")
 
     # TRAIN
     pipeline.cfg_tb = {
@@ -84,7 +83,7 @@ def init_model():
     return pipeline
 
 def construct_model_meta():
-    cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+    cfg = _ml3d.utils.Config.load_from_file("/data/INFERENCE_CKPT/pointpillars_lyft_sly.yml")
 
     labels = cfg.model.classes
     g.gt_index_to_labels = dict(enumerate(labels))
@@ -108,14 +107,25 @@ def read_pcd(local_pointcloud_path):
     # center = pcloud.get_center()
     # pcloud = pcloud.rotate(R, center)
     points = np.asarray(pcloud.points, dtype=np.float32)
-    intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
-    pc = np.hstack((points, intensity)).astype("float32")
+    try:
+        intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
+        pc = np.hstack((points, intensity))
+    except IndexError:
+        pc = points
+
+    # try:
+    #     double_intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 1:2]
+    #     pc = np.hstack((pc, double_intensity)).astype("float32")
+    # except IndexError:
+    #     pass
+
     return pc
 
 
 def prediction_to_geometries(prediction):
     geometries = []
     for l in prediction:
+        print(l)
         bbox = l.to_xyzwhlr()
         dim = bbox[[3, 5, 4]]
         pos = bbox[:3] + [0, 0, dim[1] / 2]
@@ -162,18 +172,20 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     """
 
     pc = read_pcd(local_pointcloud_path)
-    calib = KITTI.read_calib(calib_path)
+    data = {'point': pc, 'feat': None, 'calib': {}}
+
+
 
     # reduced_pc = DataProcessing.remove_outside_points(
     #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])  # TODO: is it necessary?
 
-    data = {
-        'point': pc,
-        #'full_point': pc,
-        'feat': None,
-        'calib': calib,
-        'bounding_boxes': None,
-    }
+    # data = {
+    #     'point': pc,
+    #     #'full_point': pc,
+    #     'feat': None,
+    #     'calib': calib,
+    #     'bounding_boxes': None,
+    # }
 
     gen_func, gen_types, gen_shapes = model.model.get_batch_gen([{"data": data}], steps_per_epoch=None, batch_size=1)
     loader = tf.data.Dataset.from_generator(
@@ -184,7 +196,6 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
-        print(pred)
         pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
         annotation = prediction_to_annotation(pred_by_thresh)
         annotations.append(annotation)

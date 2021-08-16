@@ -5,14 +5,14 @@ from ml3d.datasets import KITTI, Lyft
 from ml3d.tf.pipelines import ObjectDetection
 import pprint
 
-cfg = Config.load_from_file("../train/configs/pointpillars_lyft.yml")
+cfg = Config.load_from_file("../train/configs/pointpillars_lyft_sly.yml")
 
 model = PointPillars(**cfg.model)
 dataset = Lyft(**cfg.dataset)
 
 pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
 #pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12") #  Pretrained
-pipeline.load_ckpt("./logs/PointPillars_Lyft_tf/checkpoint/ckpt-17")
+#pipeline.load_ckpt("./logs/PointPillars_Lyft_tf/checkpoint/ckpt-47")
 
 # TRAIN
 pipeline.cfg_tb = {
@@ -23,10 +23,10 @@ pipeline.cfg_tb = {
     "pipeline": pprint.pformat(cfg.pipeline, indent=2),
 }
 
-#pipeline.run_train()
+pipeline.run_train()
 
 # EVAL
-pipeline.run_valid()
+#pipeline.run_valid()
 
 # INFERENCE
 # local_pointcloud_path = "/data/sly_project_kitti/training/velodyne/000002.bin"

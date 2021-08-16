@@ -2,7 +2,7 @@ dataset:
   name: Lyft
   dataset_path: /data/Lyft/train_set_preprocessed
   cache_dir: ./logs/cache
-  steps_per_epoch_train: 100
+  steps_per_epoch_train: 20
   val_split: 10
 
 model:
@@ -13,8 +13,7 @@ model:
 
   point_cloud_range: [-80, -80, -5, 80, 80, 3.0]
   classes: [
-    'car', 'truck', 'bus', 'emergency_vehicle', 'other_vehicle', 'motorcycle',
-    'bicycle', 'pedestrian', 'animal'
+    'car', 'ignore'
   ]
 
   loss:
@@ -62,25 +61,25 @@ model:
     score_thr: 0.05
     ranges: [
       [-80, -80, -1.0715024, 80, 80, -1.0715024],
-      [-80, -80, -0.3033737, 80, 80, -0.3033737],
-      [-80, -80, -0.3519405, 80, 80, -0.3519405],
-      [-80, -80, -0.8871424, 80, 80, -0.8871424],
-      [-80, -80, -0.6276341, 80, 80, -0.6276341],
-      [-80, -80, -1.3220503, 80, 80, -1.3220503],
-      [-80, -80, -1.0709302, 80, 80, -1.0709302],
-      [-80, -80, -0.9122268, 80, 80, -0.9122268],
-      [-80, -80, -1.8012227, 80, 80, -1.8012227]
+      [-80, -80, -0.3033737, -80, -80, -0.3033737]
+#      [-80, -80, -0.3519405, 80, 80, -0.3519405],
+#      [-80, -80, -0.8871424, 80, 80, -0.8871424],
+#      [-80, -80, -0.6276341, 80, 80, -0.6276341],
+#      [-80, -80, -1.3220503, 80, 80, -1.3220503],
+#      [-80, -80, -1.0709302, 80, 80, -1.0709302],
+#      [-80, -80, -0.9122268, 80, 80, -0.9122268],
+#      [-80, -80, -1.8012227, 80, 80, -1.8012227]
     ]
     sizes: [
         [1.92, 4.75, 1.71],   # car
-        [2.84, 10.24, 3.44],  # truck
-        [2.92, 12.70, 3.42],  # bus
-        [2.42, 6.52, 2.34],   # emergency vehicle
-        [2.75, 8.17, 3.20],   # other vehicle
-        [0.96, 2.35, 1.59],   # motorcycle
-        [0.63, 1.76, 1.44],   # bicycle
-        [0.76, 0.80, 1.76],   # pedestrian
-        [0.35, 0.73, 0.50]    # animal
+        [2.84, 10.24, 3.44]  # truck
+#        [2.92, 12.70, 3.42],  # bus
+#        [2.42, 6.52, 2.34],   # emergency vehicle
+#        [2.75, 8.17, 3.20],   # other vehicle
+#        [0.96, 2.35, 1.59],   # motorcycle
+#        [0.63, 1.76, 1.44],   # bicycle
+#        [0.76, 0.80, 1.76],   # pedestrian
+#        [0.35, 0.73, 0.50]    # animal
     ]
     rotations: [0, 1.57]
     iou_thr: [[0.3, 0.6]]
@@ -94,17 +93,17 @@ model:
 pipeline:
   name: ObjectDetection
   test_compute_metric: true
-  batch_size: 1
+  batch_size: 2
   val_batch_size: 1
   test_batch_size: 1
-  save_ckpt_freq: 5
-  max_epoch: 80
+  save_ckpt_freq: 30
+  max_epoch: 600
   main_log_dir: ./logs
   train_sum_dir: train_log
   grad_clip_norm: 2
 
   optimizer:
-    lr: 0.0001
+    lr: 0.00005
     betas: [0.95, 0.99]
     weight_decay: 0.01
 

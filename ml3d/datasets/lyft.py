@@ -69,11 +69,10 @@ class Lyft(BaseDataset):
 
         if os.path.exists(join(info_path, 'infos_train.pkl')):
             self.train_info = pickle.load(
-                open(join(info_path, 'infos_train.pkl'), 'rb'))
+                open(join(info_path, 'infos_train.pkl'), 'rb'))[0:20]
 
         if os.path.exists(join(info_path, 'infos_val.pkl')):
-            self.val_info = pickle.load(
-                open(join(info_path, 'infos_val.pkl'), 'rb'))
+            self.val_info = self.train_info[:10]
 
         if os.path.exists(join(info_path, 'infos_test.pkl')):
             self.test_info = pickle.load(
@@ -227,7 +226,7 @@ class LyftSplit():
 
         pc = self.dataset.read_lidar(lidar_path)
 
-        data = {'point': pc, 'feat': None, 'calib': calib}
+        data = {'point': pc, 'feat': None, 'calib': {}}
 
         if self.split not in ["test", "testing"]:
             data['bounding_boxes'] = self.dataset.read_label(info, calib)
