@@ -5,7 +5,7 @@ from pathlib import Path
 from glob import glob
 import logging
 import yaml
-
+import open3d as o3d
 import supervisely_lib as sly
 from .base_dataset import BaseDataset, BaseDatasetSplit
 from ..utils import Config, make_dir, DATASET
@@ -18,40 +18,9 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-class SlyDataset(BaseDataset):
-    """This class is used to create a dataset based on the KITTI dataset, and
-    used in object detection, visualizer, training, or testing.
-    """
-
-    def __init__(self,
-                 dataset_path,
-                 name='KITTI',
-                 cache_dir='./logs/cache',
-                 use_cache=False,
-                 val_split=3712,
-                 test_result_folder='./test',
-                 **kwargs):
-        """Initialize the function by passing the dataset and other details.
-
-        Args:
-            dataset_path: The path to the dataset to use.
-            name: The name of the dataset (KITTI in this case).
-            cache_dir: The directory where the cache is stored.
-            use_cache: Indicates if the dataset should be cached.
-            val_split: The split value to get a set of images for training,
-            validation, for testing.
-            test_result_folder: Path to store test output.
-
-        Returns:
-            class: The corresponding class.
-        """
-        super().__init__(dataset_path=dataset_path,
-                         name=name,
-                         cache_dir=cache_dir,
-                         use_cache=use_cache,
-                         val_split=val_split,
-                         test_result_folder=test_result_folder,
-                         **kwargs)
+class SlyProjectDataset(BaseDataset):
+    def __init__(self, project_path, name='Supervisely', val_split=0, shuffle_seed=None, **kwargs):
+        super().__init__(dataset_path=project_path, name=name, val_split=val_split, **kwargs)
 
         cfg = self.cfg
 
@@ -60,32 +29,25 @@ class SlyDataset(BaseDataset):
         self.num_classes = 3
         self.label_to_names = self.get_label_to_names()
 
-        self.all_files = glob(
-            join(cfg.dataset_path, 'training', 'velodyne', '*.bin'))
-        self.all_files.sort()
-        self.train_files = []
-        self.val_files = []
+        self.project_fs = sly.PointcloudProject.read_single(project_path)
+        self.meta = self.project_fs.meta
+        assert self.project_fs.total_items - val_split > 0
 
-        for f in self.all_files:
-            idx = int(Path(f).name.replace('.bin', ''))
+        for dataset_fs in self.project_fs:
+            self.dataset = dataset_fs
+            items = list(dataset_fs._item_to_ann)
+            if shuffle_seed:
+                np.random.seed(shuffle_seed)
+            np.random.shuffle(items)
+            break
 
-            self.train_files.append(f)
-            self.val_files.append(f)
-
-
-
-        self.test_files = glob(
-            join(cfg.dataset_path, 'testing', 'velodyne', '*.bin'))
-        self.test_files.sort()
+        self.train_split = items[val_split:]
+        self.val_split = items[:val_split]
+        self.test_split = None
 
     @staticmethod
     def get_label_to_names():
-        """Returns a label to names dictonary object.
-
-        Returns:
-            A dict where keys are label numbers and values are the corresponding
-            names.
-        """
+        # TODO: read it from config / dataset
         label_to_names = {
             0: 'DontCare',
             1: 'DontCare',
@@ -104,45 +66,12 @@ class SlyDataset(BaseDataset):
             A data object with lidar information.
         """
         assert Path(path).exists()
-        return np.fromfile(path, dtype=np.float32).reshape(-1, 4)
+        pcloud = o3d.io.read_point_cloud(path)
+        points = np.asarray(pcloud.points, dtype=np.float32)
+        intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
+        pc = np.hstack((points, intensity)).astype("float32")
 
-    @staticmethod
-    def read_label(path, calib):
-        """Reads labels of bound boxes.
-
-        Returns:
-            The data objects with bound boxes information.
-        """
-        if not Path(path).exists():
-            return []
-
-        with open(path, 'r') as f:
-            lines = f.readlines()
-
-        objects = []
-        for line in lines:
-            label = line.strip().split(' ')
-
-            center = np.array(
-                [float(label[11]),
-                 float(label[12]),
-                 float(label[13]), 1.0])
-
-            points = center @ np.linalg.inv(calib['world_cam'])
-
-            size = [float(label[9]), float(label[8]), float(label[10])]  # w,h,l
-            center = [points[0], points[1], size[1] / 2 + points[2]]
-
-            objects.append(Object3d(center, size, label, calib))
-
-        return objects
-
-    @staticmethod
-    def _extend_matrix(mat):
-        mat = np.concatenate(
-            [mat, np.array([[0., 0., 1., 0.]], dtype=mat.dtype)], axis=0)
-        return mat
-
+        return pc
 
     def get_split(self, split):
         """Returns a dataset split.
@@ -172,55 +101,23 @@ class SlyDataset(BaseDataset):
             'all'.
         """
         if split in ['train', 'training']:
-            return self.train_files
+            return self.train_split
         elif split in ['test', 'testing']:
-            return self.test_files
+            return self.test_split
         elif split in ['val', 'validation']:
-            return self.val_files
+            return self.val_split
         elif split in ['all']:
-            return self.train_files + self.val_files + self.test_files
+            return self.train_split + self.val_split
         else:
             raise ValueError("Invalid split {}".format(split))
 
-    def is_tested(self):
-        """Checks if a datum in the dataset has been tested.
-
-        Args:
-            dataset: The current dataset to which the datum belongs to.
-            attr: The attribute that needs to be checked.
-
-        Returns:
-            If the dataum attribute is tested, then resturn the path where the
-            attribute is stored; else, returns false.
-        """
-        pass
-
-    def save_test_result(self, results, attrs):
-        """Saves the output of a model.
-
-        Args:
-            results: The output of a model for the datum associated with the
-            attribute passed.
-            attrs: The attributes that correspond to the outputs passed in
-            results.
-        """
-        make_dir(self.cfg.test_result_folder)
-        for attr, res in zip(attrs, results):
-            name = attr['name']
-            path = join(self.cfg.test_result_folder, name + '.txt')
-            f = open(path, 'w')
-            for box in res:
-                f.write(box.to_kitti_format(box.confidence))
-                f.write('\n')
-
     @staticmethod
-    def read_sly_label(path, meta):
+    def read_label(path, meta):
         ann_json = sly.io.json.load_json_file(path)
         ann = sly.PointcloudAnnotation.from_json(ann_json, meta)
         objects = []
 
         for fig in ann.figures:
-
             geometry = fig.geometry
             class_name = fig.parent_object.obj_class.name
 
@@ -237,29 +134,30 @@ class SlyDataset(BaseDataset):
             objects.append(obj)
         return objects
 
-class SlyDatasetSplit():
-    def __init__(self, dataset, split='train'):
-        self.cfg = dataset.cfg
-        path_list = dataset.get_split_list(split)
-        log.info("Found {} pointclouds for {}".format(len(path_list), split))
+    def is_tested(self):
+        pass
 
-        self.path_list = path_list
+    def save_test_result(self):
+        pass
+
+
+class SlyDatasetSplit(BaseDatasetSplit):
+    def __init__(self, project, split='train'):
+        self.cfg = project.cfg
+        self.path_list = project.get_split_list(split)
+        log.info("Found {} pointclouds for {}".format(self.__len__(), split))
         self.split = split
-        self.dataset = dataset
+        self.project = project
         self.meta = None
 
     def __len__(self):
         return len(self.path_list)
 
     def get_data(self, idx):
-        pc_path = self.path_list[idx]
-        pc = self.dataset.read_lidar(pc_path)
-
-        #SLY MAGIC
-        itemname = sly.fs.get_file_name(pc_path)
-        project_fs = sly.PointcloudProject.read_single("/data/sly_project")
-        sly_label_path = "/data/sly_project/kitti_with_images/ann/" + itemname + ".pcd.json"
-        label_sly = self.dataset.read_sly_label(sly_label_path, project_fs.meta)
+        item = self.path_list[idx]
+        item_path, related_images_dir, ann_path = self.project.dataset.get_item_paths(item)
+        pc = self.project.read_lidar(item_path)
+        label_sly = self.project.read_label(ann_path, self.project.meta)
 
         data = {
             'point': pc,
@@ -270,70 +168,11 @@ class SlyDatasetSplit():
         return data
 
     def get_attr(self, idx):
-        pc_path = self.path_list[idx]
-        name = Path(pc_path).name.split('.')[0]
+        item = self.path_list[idx]
+        item_path, _, _ = self.project.dataset.get_item_paths(item)
 
-        attr = {'name': name, 'path': pc_path, 'split': self.split}
+        attr = {'name': item, 'path': item_path, 'split': self.split}
         return attr
 
 
-class Object3d(BEVBox3D):
-    """The class stores details that are object-specific, such as bounding box
-    coordinates, occulusion and so on.
-    """
-
-    def __init__(self, center, size, label, calib=None):
-        confidence = float(label[15]) if label.__len__() == 16 else -1.0
-
-        world_cam = calib['world_cam']
-        cam_img = calib['cam_img']
-
-        # kitti boxes are pointing backwards
-        yaw = float(label[14]) - np.pi
-        yaw = yaw - np.floor(yaw / (2 * np.pi) + 0.5) * 2 * np.pi
-
-        self.truncation = float(label[1])
-        self.occlusion = float(
-            label[2]
-        )  # 0:fully visible 1:partly occluded 2:largely occluded 3:unknown
-
-        self.alpha = float(label[3])
-        self.box2d = np.array((float(label[4]), float(label[5]), float(
-            label[6]), float(label[7])),
-                              dtype=np.float32)
-
-        class_name = label[0] if label[0] in SlyDataset.get_label_to_names().values(
-        ) else 'DontCare'
-
-        super().__init__(center, size, yaw, class_name, confidence, world_cam,
-                         cam_img)
-
-        self.yaw = float(label[14])
-
-    def get_difficulty(self):
-        """The method determines difficulty level of the object, such as Easy,
-        Moderate, or Hard.
-        """
-        height = float(self.box2d[3]) - float(self.box2d[1]) + 1
-
-        if height >= 40 and self.truncation <= 0.15 and self.occlusion <= 0:
-            self.level_str = 'Easy'
-            return 0  # Easy
-        elif height >= 25 and self.truncation <= 0.3 and self.occlusion <= 1:
-            self.level_str = 'Moderate'
-            return 1  # Moderate
-        elif height >= 25 and self.truncation <= 0.5 and self.occlusion <= 2:
-            self.level_str = 'Hard'
-            return 2  # Hard
-        else:
-            self.level_str = 'UnKnown'
-            return -1
-
-    def to_str(self):
-        print_str = '%s %.3f %.3f %.3f box2d: %s hwl: [%.3f %.3f %.3f] pos: %s ry: %.3f' \
-                     % (self.label_class, self.truncation, self.occlusion, self.alpha, self.box2d, self.size[2], self.size[0], self.size[1],
-                        self.center, self.yaw)
-        return print_str
-
-
-DATASET._register_module(SlyDataset)
+DATASET._register_module(SlyProjectDataset)

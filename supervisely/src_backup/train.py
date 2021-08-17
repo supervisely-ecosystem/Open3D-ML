@@ -1,18 +1,19 @@
 
 from ml3d.utils.config import Config
 from ml3d.tf.models import PointPillars
-from ml3d.datasets import KITTI, Lyft
+from ml3d.datasets.sly_dataset import SlyProjectDataset
 from ml3d.tf.pipelines import ObjectDetection
 import pprint
 
-cfg = Config.load_from_file("../train/configs/pointpillars_lyft.yml")
+cfg = Config.load_from_file("../train/configs/pointpillars_kitti_sly.yml")
 
 model = PointPillars(**cfg.model)
-dataset = Lyft(**cfg.dataset)
+
+dataset = SlyProjectDataset("/data/sly_project", val_split=5)
 
 pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
-#pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12") #  Pretrained
-pipeline.load_ckpt("./logs/PointPillars_Lyft_tf/checkpoint/ckpt-17")
+pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12") #  Pretrained
+#pipeline.load_ckpt("/data/INFERENCE_CKPT/ckpt-12")
 
 # TRAIN
 pipeline.cfg_tb = {
