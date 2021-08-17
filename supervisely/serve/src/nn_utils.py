@@ -1,12 +1,8 @@
 import os
-
 import open3d.ml as _ml3d
 import tensorflow as tf
-import open3d as o3d
 from ml3d.tf.pipelines import ObjectDetection
-import numpy as np
-from ml3d.datasets.utils import DataProcessing
-from ml3d.datasets.kitti import KITTI
+from ml3d.datasets.sly_dataset import SlyProjectDataset
 import supervisely_lib as sly
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
@@ -28,60 +24,66 @@ def _download_dir(remote_dir, local_dir):
 def download_model_and_configs():
     g.local_weights_path = os.path.join(g.my_app.data_dir, os.path.basename(g.remote_weights_path))
     _download_dir(g.remote_weights_path, g.local_weights_path)
+    config = [x for x in os.listdir(g.local_weights_path) if x.endswith('yml')]
+
+    sly.logger.debug(f"Remote weights {g.remote_weights_path}")
+    sly.logger.debug(f"Local weights {g.local_weights_path}")
+
+
+    g.local_model_config_path = os.path.join(g.local_weights_path, config[0])
+    sly.logger.debug(f"Local config path {g.local_model_config_path}")
     sly.logger.info("Model has been successfully downloaded")
 
 
+def init_model():
+    cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            if g.device == 'cpu':
+                tf.config.set_visible_devices([], 'GPU')
+            elif g.device == 'cuda':
+                tf.config.set_visible_devices(gpus[0], 'GPU')
+            else:
+                idx = g.device.split(':')[1]
+                tf.config.set_visible_devices(gpus[int(idx)], 'GPU')
+        except RuntimeError as e:
+            sly.logger.exception(e)
+
+    Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
+    model = Model(**cfg.model)
+    pipeline = ObjectDetection(model=model)
+    pipeline.load_ckpt(g.local_ckpt_path)
+
+    return pipeline
 
 # def init_model():
-#     cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+#     from ml3d.utils.config import Config
+#     from ml3d.tf.models import PointPillars
+#     from ml3d.tf.pipelines import ObjectDetection
+#     import pprint
 #
-#     gpus = tf.config.experimental.list_physical_devices('GPU')
-#     if gpus:
-#         try:
-#             for gpu in gpus:
-#                 tf.config.experimental.set_memory_growth(gpu, True)
-#             if g.device == 'cpu':
-#                 tf.config.set_visible_devices([], 'GPU')
-#             elif g.device == 'cuda':
-#                 tf.config.set_visible_devices(gpus[0], 'GPU')
-#             else:
-#                 idx = g.device.split(':')[1]
-#                 tf.config.set_visible_devices(gpus[int(idx)], 'GPU')
-#         except RuntimeError as e:
-#             sly.logger.exception(e)
+#     cfg = Config.load_from_file("../../train/configs/pointpillars_kitti_sly.yml")
 #
-#     Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
-#     model = Model(**cfg.model)
-#     pipeline = ObjectDetection(model=model)
-#     pipeline.load_ckpt(g.local_ckpt_path)
+#     model = PointPillars(**cfg.model)
+#     dataset = SlyProjectDataset(**cfg.dataset)
 #
+#     pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
+#     pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12")  # Pretrained
+#     # pipeline.load_ckpt("./logs/PointPillars_KITTI_tf/checkpoint/ckpt-2")
+#
+#     # TRAIN
+#     pipeline.cfg_tb = {
+#         "readme": "readme",
+#         "cmd_line": "cmd_line",
+#         "dataset": pprint.pformat(cfg.dataset, indent=2),
+#         "model": pprint.pformat(cfg.model, indent=2),
+#         "pipeline": pprint.pformat(cfg.pipeline, indent=2),
+#     }
 #     return pipeline
-
-def init_model():
-    from ml3d.utils.config import Config
-    from ml3d.tf.models import PointPillars
-    from ml3d.datasets import KITTI
-    from ml3d.tf.pipelines import ObjectDetection
-    import pprint
-
-    cfg = Config.load_from_file("../../train/configs/pointpillars_kitti_sly.yml")
-
-    model = PointPillars(**cfg.model)
-    dataset = KITTI(**cfg.dataset)
-
-    pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
-    pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12")  # Pretrained
-    # pipeline.load_ckpt("./logs/PointPillars_KITTI_tf/checkpoint/ckpt-2")
-
-    # TRAIN
-    pipeline.cfg_tb = {
-        "readme": "readme",
-        "cmd_line": "cmd_line",
-        "dataset": pprint.pformat(cfg.dataset, indent=2),
-        "model": pprint.pformat(cfg.model, indent=2),
-        "pipeline": pprint.pformat(cfg.pipeline, indent=2),
-    }
-    return pipeline
 
 def construct_model_meta():
     cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
@@ -94,24 +96,27 @@ def construct_model_meta():
     sly.logger.info(g.meta.to_json())
 
 
+def find_unique_file(dir_where, endswith):
+    files = [x for x in os.listdir(dir_where) if x.endswith(endswith)]
+    if not files:
+        sly.logger.error(f'No {endswith} file found in {dir_where}!')
+    elif len(files) > 1:
+        sly.logger.error(f'More than one {endswith} file found in {dir_where}\n!')
+    else:
+        return os.path.join(dir_where, files[0])
+    return None
+
 @sly.timeit
 def deploy_model():
-    g.local_ckpt_path = os.path.join(g.local_weights_path, os.listdir(g.local_weights_path)[0].split('.')[0])
-    g.model = init_model()
-    sly.logger.info("Model has been successfully deployed")
-
-
-
-def read_pcd(local_pointcloud_path):
-    pcloud = o3d.io.read_point_cloud(local_pointcloud_path)
-    # R = pcloud.get_rotation_matrix_from_xyz((0, 0, np.pi))
-    # center = pcloud.get_center()
-    # pcloud = pcloud.rotate(R, center)
-    points = np.asarray(pcloud.points, dtype=np.float32)
-    intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
-    pc = np.hstack((points, intensity)).astype("float32")
-    return pc
-
+    file = find_unique_file(g.local_weights_path, 'index')
+    if os.path.exists(file):
+        g.local_ckpt_path = file.split('.')[0]
+        g.model = init_model()
+        sly.logger.info("Model has been successfully deployed")
+    else:
+        msg = f"Wrong model path: {file}!"
+        sly.logger.error(msg) # TODO: logging exceptions
+        raise ValueError(msg)
 
 def prediction_to_geometries(prediction):
     geometries = []
@@ -150,28 +155,21 @@ def filter_prediction_threshold(predictions, thresh):
     return filtered_pred
 
 
-def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
+def inference_model(model, local_pointcloud_path, thresh=0.3):
     """Inference 1 pointcloud with the detector.
 
     Args:
         model (nn.Module): The loaded detector (ObjectDetection pipeline instance).
         local_pointcloud_path: str: The pointcloud filename.
-        local_pointcloud_path: str: The calibration filename.
     Returns:
         result Pointcloud.annotation object`.
     """
 
-    pc = read_pcd(local_pointcloud_path)
-    calib = KITTI.read_calib(calib_path)
-
-    # reduced_pc = DataProcessing.remove_outside_points(
-    #     pc, calib['world_cam'], calib['cam_img'], [375, 1242])  # TODO: is it necessary?
+    pc = SlyProjectDataset.read_lidar(local_pointcloud_path)
 
     data = {
         'point': pc,
-        #'full_point': pc,
         'feat': None,
-        'calib': calib,
         'bounding_boxes': None,
     }
 
@@ -184,10 +182,10 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
-        print(pred)
         pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
         annotation = prediction_to_annotation(pred_by_thresh)
         annotations.append(annotation)
+        break  # because batch_size == 1
 
     return annotations[0] # 0 == no batch inference, loader should return 1 annotation
 
