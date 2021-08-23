@@ -6,7 +6,7 @@ from ml3d.datasets.sly_dataset import SlyProjectDataset
 import supervisely_lib as sly
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
-import globals as g
+import sly_globals as g
 
 
 def _download_dir(remote_dir, local_dir):
@@ -36,7 +36,7 @@ def download_model_and_configs():
 
 
 def init_model():
-    cfg = _ml3d.utils.Config.load_from_file("/Open3D-ML/supervisely/train/configs/pointpillars_sly.yml")
+    cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
 
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
@@ -58,33 +58,9 @@ def init_model():
     from ml3d.tf.models.point_pillars import PointPillars
     model = PointPillars(**cfg.model)
     pipeline = ObjectDetection(model=model)
-    pipeline.load_ckpt("/Open3D-ML/supervisely/src_backup/logs/PointPillarsNoNorm_SlyProjectDataset_tf/checkpoint/ckpt-12")
+    pipeline.load_ckpt(g.local_ckpt_path)
     return pipeline
 
-# def init_model():
-#     from ml3d.utils.config import Config
-#     from ml3d.tf.models import PointPillars
-#     from ml3d.tf.pipelines import ObjectDetection
-#     import pprint
-#
-#     cfg = Config.load_from_file("../../train/configs/pointpillars_kitti_sly.yml")
-#
-#     model = PointPillars(**cfg.model)
-#     dataset = SlyProjectDataset(**cfg.dataset)
-#
-#     pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
-#     pipeline.load_ckpt("/data/pointpillars_kitti_202012221652utc/ckpt-12")  # Pretrained
-#     # pipeline.load_ckpt("./logs/PointPillars_KITTI_tf/checkpoint/ckpt-2")
-#
-#     # TRAIN
-#     pipeline.cfg_tb = {
-#         "readme": "readme",
-#         "cmd_line": "cmd_line",
-#         "dataset": pprint.pformat(cfg.dataset, indent=2),
-#         "model": pprint.pformat(cfg.model, indent=2),
-#         "pipeline": pprint.pformat(cfg.pipeline, indent=2),
-#     }
-#     return pipeline
 
 def construct_model_meta():
     cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
@@ -174,7 +150,7 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
         'feat': None,
         'bounding_boxes': None,
     }
-    print("ENTER")
+
     gen_func, gen_types, gen_shapes = model.model.get_batch_gen([{"data": data}], steps_per_epoch=None, batch_size=1)
     loader = tf.data.Dataset.from_generator(
         gen_func, gen_types,
@@ -192,8 +168,7 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
         except Exception as e:
             print(e)
 
+    return annotations[0]  # 0 == no batch inference, loader should return 1 annotation
 
-    print("OK")
-    return annotations[0] # 0 == no batch inference, loader should return 1 annotation
 
 

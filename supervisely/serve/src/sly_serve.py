@@ -1,9 +1,11 @@
 import functools
 import os
+import sys
 
+sys.path.append('')
 import supervisely_lib as sly
 
-import globals as g
+import sly_globals as g
 import nn_utils
 
 
