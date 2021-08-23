@@ -82,7 +82,7 @@ pipeline:
   val_batch_size: 1
   test_batch_size: 1
   save_ckpt_freq: 5
-  max_epoch: 1000
+  max_epoch: 20
   main_log_dir: ./logs
   train_sum_dir: train_log
   grad_clip_norm: 2

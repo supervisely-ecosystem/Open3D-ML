@@ -115,7 +115,7 @@ def train(api: sly.Api, task_id, context, state, app_logger):
 
 
         exclude_items = g.api.app.get_field(g.task_id, "data.pointcloudsWithoutFigures")
-        convert(g.project_dir, exclude_items=exclude_items)
+        #convert(g.project_dir, exclude_items=exclude_items)
 
 
         init_script_arguments(state)

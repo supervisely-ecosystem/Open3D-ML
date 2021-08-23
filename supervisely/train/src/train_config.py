@@ -39,14 +39,14 @@ def generate_config(state):
     else:
         cfg['model']['classes'] = state['selectedTags']
 
-    cfg['dataset']['dataset_path'] = g.project_dir + "_kitti"
+    cfg['dataset']['project_path'] = g.project_dir
     cfg['dataset']['steps_per_epoch_train'] = state["steps_per_epoch_train"]
-    cfg['dataset']['val_split'] = g.api.app.get_field(g.task_id, "data.trainImagesCount") + 1
+    cfg['dataset']['val_split'] = g.api.app.get_field(g.task_id, "data.valImagesCount")
 
     cfg['model']['ckpt_path'] = state['localWeightsPath']
 
-    cfg['model']['augment']['PointShuffle'] = state['pointShuffle']
-    cfg['model']['augment']['ObjectNoise'] = state['objectNoise']
+    # cfg['model']['augment']['PointShuffle'] = state['pointShuffle']
+    # cfg['model']['augment']['ObjectNoise'] = state['objectNoise'] # TODO: make augs available
     # cfg['model']['augment']['RangeFilter'] = state['rangeFilter']
 
     cfg['pipeline']['batch_size'] = state["batchSizeTrain"]

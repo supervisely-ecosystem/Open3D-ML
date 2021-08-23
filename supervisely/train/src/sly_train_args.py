@@ -11,4 +11,4 @@ def init_script_arguments(state):
     sys.argv.extend(["--pipeline", "ObjectDetection"])
 
     #sys.argv.extend(["--device", "cuda"])
-    #sys.argv.extend(["--gpu-ids", state["gpusId"]])
+    #sys.argv.extend(["--gpu-ids", state["gpusId"]]) # TODO: add gpus check

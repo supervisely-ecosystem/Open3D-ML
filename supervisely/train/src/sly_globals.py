@@ -23,7 +23,7 @@ if not inference:
     if project_info is None:  # for debug
         raise ValueError(f"Project with id={project_id} not found")
 
-    #sly.fs.clean_dir(my_app.data_dir)  # @TODO: for debug
+    sly.fs.clean_dir(my_app.data_dir)  # @TODO: for debug
 
     project_dir = os.path.join(my_app.data_dir, "sly_project")
     project_meta = sly.ProjectMeta.from_json(api.project.get_meta(project_id))
