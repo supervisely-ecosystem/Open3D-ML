@@ -1,0 +1,115 @@
+dataset:
+  name: SlyProjectDataset
+  project_path: /data/LyftSequence4_filtered
+  cache_dir: ./logs/cache
+  use_cache: true
+  steps_per_epoch_train: 20
+  val_split: 2
+
+model:
+  name: PointPillars
+  ckpt_path: # path/to/your/checkpoint
+
+  batcher: "ignore"
+
+  point_cloud_range: [-43, -43, -5, 43, 43, 3.0]
+  classes: ['car', 'truck']
+
+  loss:
+    focal:
+      gamma: 2.0
+      alpha: 0.25
+      loss_weight: 1.0
+    smooth_l1:
+      beta: 0.11
+      loss_weight: 2.0
+    cross_entropy:
+      loss_weight: 0.2
+
+  voxelize:
+    max_num_points: 20
+    voxel_size: &vsize
+      [0.25, 0.25, 8]
+    max_voxels: [30000, 30000]
+  
+  voxel_encoder:
+    in_channels: 4
+    feat_channels: [64]
+    voxel_size: *vsize
+
+  scatter:
+    in_channels: 64
+    output_shape: [344, 344]
+
+  backbone:
+    in_channels: 64
+    out_channels: [64, 128, 256]
+    layer_nums: [3, 5, 5]
+    layer_strides: [2, 2, 2]
+
+  neck:
+    in_channels: [64, 128, 256]
+    out_channels: [128, 128, 128]
+    upsample_strides: [1, 2, 4]
+    use_conv_for_no_stride: false
+
+  head:
+    in_channels: 384
+    feat_channels: 384
+    nms_pre: 1000
+    score_thr: 0.05
+    ranges: [
+      [-43, -43, -1.0715024, 43, 43, -1.0715024],
+      [-43, -43, -0.3033737, 43, 43, -0.3033737]
+    ]
+    sizes: [
+        [1.92, 4.75, 1.71],  # car
+        [2.84, 10.24, 3.44]  # truck
+    ]
+    rotations: [0, 1.57]
+    iou_thr: [[0.3, 0.6]]
+    dir_offset: 0.7854
+  
+  augment:
+    PointShuffle: False
+    ObjectRangeFilter: False
+
+
+pipeline:
+  name: ObjectDetection
+  test_compute_metric: true
+  batch_size: 2
+  val_batch_size: 1
+  test_batch_size: 1
+  save_ckpt_freq: 5
+  max_epoch: 1000
+  main_log_dir: ./logs
+  train_sum_dir: train_log
+  grad_clip_norm: 2
+
+  optimizer:
+    lr: 0.001
+    betas: [0.95, 0.99]
+    weight_decay: 0.01
+
+  # evaluation properties
+  overlaps: [0.7]
+  difficulties: [0]
+
+
+
+
+# ['host-a101_lidar1_1241889714302424374.pcd', 'host-a011_lidar1_1233090647501149366.pcd']
+# loss 0.001, default cloud 80 - 80, all classes bs=2 val bs=2, clouds = 2. steps = 20 only cars(11)
+# EPOCH 11
+#INFO - 2021-08-20 14:37:28,107 - object_detection - validation -  loss_cls: 0.000 loss_bbox: 0.000 loss_dir: 0.000 > loss: 0.000 (0.0008)
+#INFO - 2021-08-20 14:37:28,120 - object_detection -
+#INFO - 2021-08-20 14:37:28,120 - object_detection - =============== mAP BEV ===============
+#INFO - 2021-08-20 14:37:28,120 - object_detection - class \ difficulty      0
+#INFO - 2021-08-20 14:37:28,120 - object_detection - car:                 100.00
+#INFO - 2021-08-20 14:37:28,123 - object_detection - Overall: 100.00
+#INFO - 2021-08-20 14:37:28,128 - object_detection -
+#INFO - 2021-08-20 14:37:28,129 - object_detection - =============== mAP  3D ===============
+#INFO - 2021-08-20 14:37:28,129 - object_detection - class \ difficulty      0
+#INFO - 2021-08-20 14:37:28,129 - object_detection - car:                 100.00
+#INFO - 2021-08-20 14:37:28,131 - object_detection - Overall: 100.00

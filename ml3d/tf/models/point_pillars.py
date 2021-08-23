@@ -86,7 +86,14 @@ class PointPillars(BaseModel):
 
         self.loss_cls = FocalLoss(**loss.get("focal_loss", {}))
         self.loss_bbox = SmoothL1Loss(**loss.get("smooth_l1", {}))
+
         self.loss_dir = CrossEntropyLoss(**loss.get("cross_entropy", {}))
+
+    def l2_bbox_loss(self, pred, target, avg_factor):
+        assert pred.shape == target.shape and tf.size(target) > 0
+
+        loss = (pred - target) * (pred - target)
+        return tf.reduce_sum(loss) / avg_factor
 
     def extract_feats(self, points, training=False):
         """Extract features from points."""
@@ -935,11 +942,9 @@ class Anchor3DHead(tf.keras.layers.Layer):
         self.bbox_coder = BBoxCoder()
         self.box_code_size = 7
 
-        print(self.num_classes)
-        print(self.num_anchors)
         #Initialize neural network layers of the head.
         self.cls_out_channels = self.num_anchors * self.num_classes
-        print(self.cls_out_channels)
+
 
         kernel_init = tf.keras.initializers.RandomNormal(stddev=0.01)
         bias_init = tf.keras.initializers.Constant(

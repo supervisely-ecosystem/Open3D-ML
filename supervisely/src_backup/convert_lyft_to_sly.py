@@ -1,5 +1,5 @@
 import shutil
-
+import pickle
 import numpy as np
 import open3d as o3d
 import supervisely_lib as sly
@@ -55,6 +55,39 @@ def convert(lyft_dataset_path, sly_project_path, sly_dataset_name="ds1"):
     sly.logger.info(f"Job done, dataset converted. Project_path: {sly_project_path}")
 
 
+def convert_from_pickle(pickle_path, sly_project_path, sly_dataset_name="ds1"):
+    shutil.rmtree(sly_project_path, ignore_errors=True)  # WARN!
+
+    with open(pickle_path, 'rb') as f:
+        dataset_info = pickle.load(f)
+
+    sly.logger.info(f"Loading Lyft dataset with {len(dataset_info)} pointclouds")
+
+    # SET Project
+    project_fs = sly.PointcloudProject(sly_project_path, OpenMode.CREATE)
+    dataset_fs = project_fs.create_dataset(sly_dataset_name)
+
+    sly.logger.info(f"Created Supervisely dataset with {dataset_fs.name} at {dataset_fs.directory}")
+
+    labels = [[Lyft.read_label(info, {'world_cam': None}), info['lidar_path']] for info in dataset_info]
+    labels, pc_paths = np.array(labels, dtype=object).T
+    meta = convert_labels_to_meta(labels)
+    project_fs.set_meta(meta)
+
+    for pc_path, label in zip(pc_paths, labels):
+        pc_path = "/data/Lyft/v1.01-train/lidar/" + sly.fs.get_file_name_with_ext(pc_path)
+        item_name = sly.fs.get_file_name(pc_path) + ".pcd"
+        item_path = dataset_fs.generate_item_path(item_name)
+
+        convert_bin_to_pcd(pc_path, item_path)  # automatically save pointcloud to itempath
+        ann = convert_label_to_annotation(label, meta)
+
+        dataset_fs.add_item_file(item_name, item_path, ann)
+        sly.logger.info(f".bin -> {item_name}")
+
+    sly.logger.info(f"Job done, dataset converted. Project_path: {sly_project_path}")
+
+
 if __name__ == "__main__":
     """
         Lyft dataset converter
@@ -62,6 +95,8 @@ if __name__ == "__main__":
     """
     # TODO: why intensity == 100?
     lyft_dataset_path = "/data/Lyft"
-    sly_project_path = "/data/LyftProject"
+    sly_project_path = "/data/LyftSequence4"
     sly_dataset_name = "lyft_sample"
-    convert(lyft_dataset_path, sly_project_path, sly_dataset_name)
+#    convert(lyft_dataset_path, sly_project_path, sly_dataset_name)
+    import os
+    convert_from_pickle(pickle_path='/data/dataset_data.pkl', sly_project_path=sly_project_path)

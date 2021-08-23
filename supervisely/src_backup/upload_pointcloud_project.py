@@ -9,11 +9,11 @@ from supervisely_lib.video_annotation.key_id_map import KeyIdMap
 if __name__ == "__main__":
     api = sly.Api.from_env()
     base_dir = '/data/'
-    project_name = "converted_kitti_project3"
+    project_name = "LyftSequence4_filtered"
     project_id = None
-
+    max_n = 11
     if project_id is not None:
-        project = api.project.get_info_by_id(5423)  # to existing project
+        project = api.project.get_info_by_id(project_id)  # to existing project
     else:
         project = api.project.create(os.environ["context.workspaceId"],
                                      project_name,
@@ -30,8 +30,13 @@ if __name__ == "__main__":
     for dataset_fs in project_fs:
         dataset = api.dataset.create(project.id, dataset_fs.name, change_name_if_conflict=True)
         sly.logger.info("dataset {!r} [id={!r}] has been created".format(dataset.name, dataset.id))
-
+        i = 0
         for item_name in tqdm.tqdm(dataset_fs):
+
+            if i >= max_n:
+                break
+            i += 1
+
             item_path, related_images_dir, ann_path = dataset_fs.get_item_paths(item_name)
 
             item_meta = {}

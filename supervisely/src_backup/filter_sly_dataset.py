@@ -7,6 +7,7 @@ import numpy as np
 from ml3d.datasets.sly_dataset import SlyProjectDataset
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d
 
+
 class PointCloudFilter:
     def __call__(self, ann, pointcloud):
         new_objs = []
@@ -91,6 +92,27 @@ class ClassRemapFilter(PointCloudFilter):
         raise NotImplementedError
 
 
+class PointCloudFilterByNames(PointCloudFilter):
+    def __init__(self, name_list, allow=True):
+        """
+        :param name_list: list [ str: item_name, str: item_name, ...]
+            regular item_name returned by sly.dataset
+        :param allow: whitelist mode if true, blacklist if false.
+        """
+        self.allow = allow
+        self.name_list = name_list  # str: item_name
+
+    def __call__(self, ann, pointcloud):
+        if ann.description in self.name_list and self.allow:
+            return ann, pointcloud
+
+        elif ann.description not in self.name_list and not self.allow:
+            return ann, pointcloud
+
+        else:
+            return None, None
+
+
 def create_meta_from_annotations(annotations):
     objs = []
     for ann in annotations:
@@ -104,7 +126,7 @@ def apply_to_project(funcs, project_dir):
     project_fs = sly.PointcloudProject.read_single(project_dir)
 
     new_project_dir = project_dir + '_filtered'
-    shutil.rmtree(new_project_dir)
+    shutil.rmtree(new_project_dir, ignore_errors=True)
     project_filtered = sly.PointcloudProject(new_project_dir, OpenMode.CREATE)
     project_filtered.set_meta(project_fs.meta)  # set tmp meta
 
@@ -114,6 +136,7 @@ def apply_to_project(funcs, project_dir):
         for item_name in tqdm.tqdm(dataset_fs, total=len(dataset_fs)):
             item_path, related_images_dir, ann_path = dataset_fs.get_item_paths(item_name)
             ann_json = sly.io.json.load_json_file(ann_path)
+            ann_json['description'] = item_name
             ann = sly.PointcloudAnnotation.from_json(ann_json, project_fs.meta)
 
             pointcloud = SlyProjectDataset.read_lidar(item_path)
@@ -139,10 +162,13 @@ def apply_to_project(funcs, project_dir):
             shutil.rmtree(new_project_dir)
 
 
-
+ignore = PointCloudFilterByNames(['host-a101_lidar1_1241889714302424374.pcd',
+                                  'host-a011_lidar1_1233090647501149366.pcd'])  # only 2 pointcloud
 rf = RangeFilter([-40,-40,-10, 40, 40,10])
 mf = MinPointsFilter(50)
-cf = ClassRemapFilter({"car": "car"})
+cf = ClassRemapFilter({"car": "car",
+                       "truck": "truck",
+                      })
 
-apply_to_project([cf, rf, mf], "/data/sly_project")
+apply_to_project([cf, rf, mf], "/data/LyftSequence4")
 

@@ -21,8 +21,8 @@ class FocalLoss(tf.Module):
     def __call__(self, pred, target, weight=None, avg_factor=None):
 
         pred_sigmoid = tf.math.sigmoid(pred)
-        target = tf.one_hot(target, int(pred.shape[-1]))
 
+        target = tf.one_hot(target, int(pred.shape[-1]))
         target = tf.cast(target, pred.dtype)
 
         pt = (1 - pred_sigmoid) * target + pred_sigmoid * (1 - target)

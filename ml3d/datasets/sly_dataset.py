@@ -26,36 +26,31 @@ class SlyProjectDataset(BaseDataset):
 
         self.name = cfg.name
         self.dataset_path = cfg.dataset_path
-        self.num_classes = 3
-        self.label_to_names = self.get_label_to_names()
+
+
 
         self.project_fs = sly.PointcloudProject.read_single(project_path)
         self.meta = self.project_fs.meta
         assert self.project_fs.total_items - val_split > 0
 
+        self.label_to_names = self.get_label_to_names()
+        self.num_classes = len(self.label_to_names.items())
         for dataset_fs in self.project_fs:
             self.dataset = dataset_fs
             items = list(dataset_fs._item_to_ann)
-            if shuffle_seed:
-                np.random.seed(shuffle_seed)
-            np.random.shuffle(items)
-            break
+            # if shuffle_seed:
+            #     np.random.seed(shuffle_seed)
+            # np.random.shuffle(items)
+            # break
 
+        print("Items", items)
         self.train_split = items[val_split:]
         self.val_split = items[:val_split]
         self.test_split = None
 
-    @staticmethod
-    def get_label_to_names():
-        # TODO: read it from config / dataset
-        label_to_names = {
-            0: 'DontCare',
-            1: 'DontCare',
-            2: 'Car',
-            3: 'Truck',
-            4: 'DontCare',
-            5: 'DontCare'
-        }
+    def get_label_to_names(self):
+        labels = [x.name for x in self.meta.obj_classes]
+        label_to_names = dict(enumerate(labels))
         return label_to_names
 
     @staticmethod
@@ -105,7 +100,7 @@ class SlyProjectDataset(BaseDataset):
         elif split in ['test', 'testing']:
             return self.test_split
         elif split in ['val', 'validation']:
-            return self.val_split
+            return self.train_split # TODO: VAL ON VAL!
         elif split in ['all']:
             return self.train_split + self.val_split
         else:

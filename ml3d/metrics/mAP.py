@@ -201,6 +201,7 @@ def mAP(pred,
     Returns:
         Returns the mAP for each class and difficulty specified.
     """
+
     if len(min_overlap) != len(classes):
         assert len(min_overlap) == 1
         min_overlap = min_overlap * len(classes)
@@ -220,6 +221,7 @@ def mAP(pred,
 
     detection = np.zeros((len(classes), len(difficulties), box_cnts[-1], 3))
     fns = np.zeros((len(classes), len(difficulties), 1), dtype='int64')
+
     for i in range(len(pred)):
         d, f = precision_3d(pred=pred[i],
                             target=target[i],

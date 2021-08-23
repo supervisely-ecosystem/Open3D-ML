@@ -36,7 +36,7 @@ def download_model_and_configs():
 
 
 def init_model():
-    cfg = _ml3d.utils.Config.load_from_file(g.local_model_config_path)
+    cfg = _ml3d.utils.Config.load_from_file("/Open3D-ML/supervisely/train/configs/pointpillars_sly.yml")
 
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
@@ -53,11 +53,12 @@ def init_model():
         except RuntimeError as e:
             sly.logger.exception(e)
 
-    Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
-    model = Model(**cfg.model)
+    #Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
+    from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
+    from ml3d.tf.models.point_pillars import PointPillars
+    model = PointPillars(**cfg.model)
     pipeline = ObjectDetection(model=model)
-    pipeline.load_ckpt(g.local_ckpt_path)
-
+    pipeline.load_ckpt("/Open3D-ML/supervisely/src_backup/logs/PointPillarsNoNorm_SlyProjectDataset_tf/checkpoint/ckpt-12")
     return pipeline
 
 # def init_model():
@@ -139,7 +140,7 @@ def prediction_to_annotation(prediction):
     figures = []
     objs = []
     for l, geometry in zip(prediction, geometries):  # by object in point cloud
-        pcobj = sly.PointcloudObject(g.meta.get_obj_class(l.label_class))
+        pcobj = sly.PointcloudObject(g.meta.get_obj_class("car"))
         figures.append(sly.PointcloudFigure(pcobj, geometry))
         objs.append(pcobj)
 
@@ -149,8 +150,9 @@ def prediction_to_annotation(prediction):
 
 def filter_prediction_threshold(predictions, thresh):
     filtered_pred = []
+    # print([bevbox.confidence for bevbox in predictions])
     for bevbox in predictions:
-        if bevbox.confidence > thresh:
+        if bevbox.confidence >= thresh:
             filtered_pred.append(bevbox)
     return filtered_pred
 
@@ -172,7 +174,7 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
         'feat': None,
         'bounding_boxes': None,
     }
-
+    print("ENTER")
     gen_func, gen_types, gen_shapes = model.model.get_batch_gen([{"data": data}], steps_per_epoch=None, batch_size=1)
     loader = tf.data.Dataset.from_generator(
         gen_func, gen_types,
@@ -182,11 +184,16 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
-        pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
-        annotation = prediction_to_annotation(pred_by_thresh)
-        annotations.append(annotation)
-        break  # because batch_size == 1
+        print(pred)
+        try:
+            pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
+            annotation = prediction_to_annotation(pred_by_thresh)
+            annotations.append(annotation)
+        except Exception as e:
+            print(e)
 
+
+    print("OK")
     return annotations[0] # 0 == no batch inference, loader should return 1 annotation
 
 

@@ -120,9 +120,9 @@ class Lyft(BaseDataset):
         Returns:
             The data objects with bound boxes information.
         """
-        mask = info['num_lidar_pts'] != 0
-        boxes = info['gt_boxes'][mask]
-        names = info['gt_names'][mask]
+       # mask = info['num_lidar_pts'] != 0
+        boxes = info['gt_boxes']
+        names = info['gt_names']
 
         objects = []
         for name, box in zip(names, boxes):
