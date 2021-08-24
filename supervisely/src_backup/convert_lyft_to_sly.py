@@ -88,6 +88,51 @@ def convert_from_pickle(pickle_path, sly_project_path, sly_dataset_name="ds1"):
     sly.logger.info(f"Job done, dataset converted. Project_path: {sly_project_path}")
 
 
+def cut_scene():
+    from lyft_dataset_sdk.lyftdataset import LyftDataset
+
+    import numpy as np
+    import pickle
+    import os
+    lyft = LyftDataset(data_path='/data/Lyft/v1.01-train', json_path='/data/Lyft/v1.01-train/data', verbose=True)
+    scene = lyft.scene[0]
+
+
+    new_token = scene["first_sample_token"]  # pass first frame
+    my_sample = lyft.get('sample', new_token)
+
+    dataset_data = []
+    for i in range(120):
+        new_token = my_sample['next']
+        my_sample = lyft.get('sample', new_token)
+        lidar_token = my_sample['data']['LIDAR_TOP']
+        lidar_path, boxes, _ = lyft.get_sample_data(lidar_token)
+
+        print("SCENE TOKEN", new_token)
+        locs = np.array([b.center for b in boxes]).reshape(-1, 3)
+        dims = np.array([b.wlh for b in boxes]).reshape(-1, 3)
+        rots = np.array([
+            b.orientation.yaw_pitch_roll[0] for b in boxes
+        ]).reshape(-1, 1)
+
+        names =  np.array([b.name for b in boxes])
+        gt_boxes = np.concatenate([locs, dims, -rots - np.pi / 2],
+                                  axis=1)
+
+
+        data = {
+            'lidar_path': lidar_path,
+            'gt_boxes': gt_boxes,
+            'gt_names': names,
+            'num_lidar_pts': [True] * 1000
+        }
+
+        dataset_data.append(data)
+
+    with open(os.path.join('/data', 'dataset_data.pkl'), 'wb') as f:
+        pickle.dump(dataset_data, f)
+
+
 if __name__ == "__main__":
     """
         Lyft dataset converter
@@ -95,8 +140,10 @@ if __name__ == "__main__":
     """
     # TODO: why intensity == 100?
     lyft_dataset_path = "/data/Lyft"
-    sly_project_path = "/data/LyftSequence4"
+    sly_project_path = "/data/LyftSequence150"
     sly_dataset_name = "lyft_sample"
 #    convert(lyft_dataset_path, sly_project_path, sly_dataset_name)
     import os
-    convert_from_pickle(pickle_path='/data/dataset_data.pkl', sly_project_path=sly_project_path)
+
+    #cut_scene()
+    #convert_from_pickle(pickle_path='/data/dataset_data.pkl', sly_project_path=sly_project_path)
