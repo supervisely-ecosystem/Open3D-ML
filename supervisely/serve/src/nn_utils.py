@@ -57,7 +57,7 @@ def init_model():
     from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
     from ml3d.tf.models.point_pillars import PointPillars
     model = PointPillars(**cfg.model)
-    pipeline = ObjectDetection(model=model)
+    pipeline = ObjectDetection(model=model, **cfg.pipeline)
     pipeline.load_ckpt(g.local_ckpt_path)
     return pipeline
 
@@ -116,7 +116,7 @@ def prediction_to_annotation(prediction):
     figures = []
     objs = []
     for l, geometry in zip(prediction, geometries):  # by object in point cloud
-        pcobj = sly.PointcloudObject(g.meta.get_obj_class("car"))
+        pcobj = sly.PointcloudObject(g.meta.get_obj_class(l.label_class))
         figures.append(sly.PointcloudFigure(pcobj, geometry))
         objs.append(pcobj)
 
@@ -160,14 +160,14 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
-        print(pred)
+
         try:
             pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
             annotation = prediction_to_annotation(pred_by_thresh)
             annotations.append(annotation)
         except Exception as e:
-            print(e)
-
+            sly.logger.exception(e)
+            raise e
     return annotations[0]  # 0 == no batch inference, loader should return 1 annotation
 
 

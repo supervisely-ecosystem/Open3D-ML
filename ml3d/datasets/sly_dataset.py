@@ -42,8 +42,6 @@ class SlyProjectDataset(BaseDataset):
             #     np.random.seed(shuffle_seed)
             # np.random.shuffle(items)
             # break
-
-        print("Items", items)
         self.train_split = items[val_split:]
         self.val_split = items[:val_split]
         self.test_split = None
@@ -100,7 +98,7 @@ class SlyProjectDataset(BaseDataset):
         elif split in ['test', 'testing']:
             return self.test_split
         elif split in ['val', 'validation']:
-            return self.train_split # TODO: VAL ON VAL!
+            return self.val_split
         elif split in ['all']:
             return self.train_split + self.val_split
         else:
