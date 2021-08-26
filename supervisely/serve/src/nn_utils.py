@@ -126,7 +126,6 @@ def prediction_to_annotation(prediction):
 
 def filter_prediction_threshold(predictions, thresh):
     filtered_pred = []
-    # print([bevbox.confidence for bevbox in predictions])
     for bevbox in predictions:
         if bevbox.confidence >= thresh:
             filtered_pred.append(bevbox)

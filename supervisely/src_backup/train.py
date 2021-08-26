@@ -6,9 +6,19 @@ from ml3d.datasets.sly_dataset import SlyProjectDataset
 from ml3d.tf.pipelines import ObjectDetection
 import pprint
 
-cfg = Config.load_from_file("../train/configs/pointpillars_sly.yml")
+
+import sys
+sys.path.append('../train/src')
+import sly_globals as g
+import supervisely_lib as sly
+cfg = Config.load_from_file("/data/long_learn120/train_pointpillars_sly.yml")
 
 model = PointPillars(**cfg.model)
+if not sly.fs.dir_exists(g.project_dir):
+    # TODO: make progress bar
+    sly.project.pointcloud_project.download_pointcloud_project(g.api, g.project_id, g.project_dir,
+                                                               download_items=True, log_progress=True)
+
 
 dataset = SlyProjectDataset(**cfg.dataset)
 pipeline = ObjectDetection(model, dataset, **cfg.pipeline)
