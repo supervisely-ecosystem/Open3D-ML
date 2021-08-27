@@ -3,6 +3,7 @@ import open3d.ml as _ml3d
 import tensorflow as tf
 from ml3d.tf.pipelines import ObjectDetection
 from ml3d.datasets.sly_dataset import SlyProjectDataset
+from ml3d.tf.models.point_pillars import PointPillars
 import supervisely_lib as sly
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
@@ -19,6 +20,7 @@ def _download_dir(remote_dir, local_dir):
         else:
             g.api.file.download(g.team_id, remote_file.path, local_file)
         progress.iter_done_report()
+
 
 @sly.timeit
 def download_model_and_configs():
@@ -41,8 +43,6 @@ def download_model_and_configs():
     g.api.file.download(g.team_id, g.remote_weights_path, g.local_weights_path)
     g.api.file.download(g.team_id, os.path.join(remote_model_dir, remote_model_index), g.local_index_path)
     g.api.file.download(g.team_id, remote_config_file, g.local_model_config_path)
-
-
 
     sly.logger.debug(f"Remote weights {g.remote_weights_path}")
     sly.logger.debug(f"Local weights {g.local_weights_path}")
@@ -69,9 +69,6 @@ def init_model():
         except RuntimeError as e:
             sly.logger.exception(e)
 
-    #Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
-    from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
-    from ml3d.tf.models.point_pillars import PointPillars
     model = PointPillars(**cfg.model)
     pipeline = ObjectDetection(model=model, **cfg.pipeline)
     pipeline.load_ckpt(g.local_ckpt_path)
@@ -83,7 +80,7 @@ def construct_model_meta():
 
     labels = cfg.model.classes
     g.gt_index_to_labels = dict(enumerate(labels))
-    g.gt_labels = {v:k for k,v in g.gt_index_to_labels.items()}
+    g.gt_labels = {v: k for k, v in g.gt_index_to_labels.items()}
 
     g.meta = sly.ProjectMeta(obj_classes=sly.ObjClassCollection([sly.ObjClass(k, Cuboid3d) for k in labels]))
     sly.logger.info(g.meta.to_json())
@@ -99,6 +96,7 @@ def find_unique_file(dir_where, endswith):
         return os.path.join(dir_where, files[0])
     return None
 
+
 @sly.timeit
 def deploy_model():
     file = g.local_weights_path
@@ -108,8 +106,9 @@ def deploy_model():
         sly.logger.info("Model has been successfully deployed")
     else:
         msg = f"Wrong model path: {file}!"
-        sly.logger.error(msg) # TODO: logging exceptions
+        sly.logger.error(msg)
         raise ValueError(msg)
+
 
 def prediction_to_geometries(prediction):
     geometries = []
@@ -126,6 +125,7 @@ def prediction_to_geometries(prediction):
         geometries.append(geometry)
 
     return geometries
+
 
 def prediction_to_annotation(prediction):
     geometries = prediction_to_geometries(prediction)
@@ -177,13 +177,10 @@ def inference_model(model, local_pointcloud_path, thresh=0.3):
         pred = g.model.run_inference(data)
 
         try:
-            pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
+            pred_by_thresh = filter_prediction_threshold(pred[0], thresh)  # pred[0] because batch_size == 1
             annotation = prediction_to_annotation(pred_by_thresh)
             annotations.append(annotation)
         except Exception as e:
             sly.logger.exception(e)
             raise e
     return annotations[0]  # 0 == no batch inference, loader should return 1 annotation
-
-
-
