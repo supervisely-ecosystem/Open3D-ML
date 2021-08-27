@@ -9,7 +9,6 @@ import architectures as model_architectures
 import hyperparameters as hyperparameters
 import hyperparameters_python as hyperparameters_python
 import monitoring as monitoring
-#import artifacts as artifacts
 
 
 @sly.timeit
@@ -26,7 +25,6 @@ def init(data, state):
     hyperparameters.init(data, state)
     hyperparameters_python.init(data, state)
     monitoring.init(data, state)
-    #artifacts.init(data)
 
 
 @g.my_app.callback("restart")
