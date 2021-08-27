@@ -86,7 +86,14 @@ class PointPillars(BaseModel):
 
         self.loss_cls = FocalLoss(**loss.get("focal_loss", {}))
         self.loss_bbox = SmoothL1Loss(**loss.get("smooth_l1", {}))
+
         self.loss_dir = CrossEntropyLoss(**loss.get("cross_entropy", {}))
+
+    def l2_bbox_loss(self, pred, target, avg_factor):
+        assert pred.shape == target.shape and tf.size(target) > 0
+
+        loss = (pred - target) * (pred - target)
+        return tf.reduce_sum(loss) / avg_factor
 
     def extract_feats(self, points, training=False):
         """Extract features from points."""
@@ -141,7 +148,7 @@ class PointPillars(BaseModel):
         """
         inputs = unpack(inputs[0], inputs[-2])
         x = self.extract_feats(inputs, training=training)
-        outs = self.bbox_head(x, training=training)
+        outs = self.bbox_head(x, training=True)
 
         return outs
 
@@ -246,7 +253,7 @@ class PointPillars(BaseModel):
                                   points[:, :3] < max_val),
                    axis=-1))]
 
-        new_data = {'point': points, 'calib': data['calib']}
+        new_data = {'point': points, 'calib': data.get('calib', {})}
 
         if attr['split'] not in ['test', 'testing']:
             new_data['bbox_objs'] = data['bounding_boxes']
@@ -387,7 +394,7 @@ class PointPillars(BaseModel):
                 yaw = bbox[-1]
                 name = self.lbl2name.get(label, "ignore")
                 inference_result[-1].append(
-                    BEVBox3D(pos, dim, yaw, name, score, world_cam, cam_img))
+                    BEVBox3D(pos, dim, yaw, name, score, None, None))
 
         return inference_result
 
@@ -937,6 +944,7 @@ class Anchor3DHead(tf.keras.layers.Layer):
 
         #Initialize neural network layers of the head.
         self.cls_out_channels = self.num_anchors * self.num_classes
+
 
         kernel_init = tf.keras.initializers.RandomNormal(stddev=0.01)
         bias_init = tf.keras.initializers.Constant(

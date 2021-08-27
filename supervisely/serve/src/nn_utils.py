@@ -1,16 +1,12 @@
 import os
-
 import open3d.ml as _ml3d
 import tensorflow as tf
-import open3d as o3d
 from ml3d.tf.pipelines import ObjectDetection
-import numpy as np
-from ml3d.datasets.utils import DataProcessing
-from ml3d.datasets.kitti import KITTI
+from ml3d.datasets.sly_dataset import SlyProjectDataset
 import supervisely_lib as sly
 from supervisely_lib.geometry.cuboid_3d import Cuboid3d, Vector3d
 from supervisely_lib.pointcloud_annotation.pointcloud_object_collection import PointcloudObjectCollection
-import globals as g
+import sly_globals as g
 
 
 def _download_dir(remote_dir, local_dir):
@@ -28,8 +24,15 @@ def _download_dir(remote_dir, local_dir):
 def download_model_and_configs():
     g.local_weights_path = os.path.join(g.my_app.data_dir, os.path.basename(g.remote_weights_path))
     _download_dir(g.remote_weights_path, g.local_weights_path)
-    sly.logger.info("Model has been successfully downloaded")
+    config = [x for x in os.listdir(g.local_weights_path) if x.endswith('yml')]
 
+    sly.logger.debug(f"Remote weights {g.remote_weights_path}")
+    sly.logger.debug(f"Local weights {g.local_weights_path}")
+
+
+    g.local_model_config_path = os.path.join(g.local_weights_path, config[0])
+    sly.logger.debug(f"Local config path {g.local_model_config_path}")
+    sly.logger.info("Model has been successfully downloaded")
 
 
 def init_model():
@@ -50,11 +53,12 @@ def init_model():
         except RuntimeError as e:
             sly.logger.exception(e)
 
-    Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
-    model = Model(**cfg.model)
-    pipeline = ObjectDetection(model=model)
+    #Model = _ml3d.utils.get_module("model", cfg.model.name, "tf")
+    from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
+    from ml3d.tf.models.point_pillars import PointPillars
+    model = PointPillars(**cfg.model)
+    pipeline = ObjectDetection(model=model, **cfg.pipeline)
     pipeline.load_ckpt(g.local_ckpt_path)
-
     return pipeline
 
 
@@ -69,21 +73,27 @@ def construct_model_meta():
     sly.logger.info(g.meta.to_json())
 
 
+def find_unique_file(dir_where, endswith):
+    files = [x for x in os.listdir(dir_where) if x.endswith(endswith)]
+    if not files:
+        sly.logger.error(f'No {endswith} file found in {dir_where}!')
+    elif len(files) > 1:
+        sly.logger.error(f'More than one {endswith} file found in {dir_where}\n!')
+    else:
+        return os.path.join(dir_where, files[0])
+    return None
+
 @sly.timeit
 def deploy_model():
-    g.local_ckpt_path = os.path.join(g.local_weights_path, os.listdir(g.local_weights_path)[0].split('.')[0])
-    g.model = init_model()
-    sly.logger.info("Model has been successfully deployed")
-
-
-
-def read_pcd(local_pointcloud_path):
-    pcloud = o3d.io.read_point_cloud(local_pointcloud_path)
-    points = np.asarray(pcloud.points, dtype=np.float32)
-    intensity = np.asarray(pcloud.colors, dtype=np.float32)[:, 0:1]
-    pc = np.hstack((points, intensity)).astype("float32")
-    return pc
-
+    file = find_unique_file(g.local_weights_path, 'index')
+    if os.path.exists(file):
+        g.local_ckpt_path = file.split('.')[0]
+        g.model = init_model()
+        sly.logger.info("Model has been successfully deployed")
+    else:
+        msg = f"Wrong model path: {file}!"
+        sly.logger.error(msg) # TODO: logging exceptions
+        raise ValueError(msg)
 
 def prediction_to_geometries(prediction):
     geometries = []
@@ -117,32 +127,26 @@ def prediction_to_annotation(prediction):
 def filter_prediction_threshold(predictions, thresh):
     filtered_pred = []
     for bevbox in predictions:
-        if bevbox.confidence > thresh:
+        if bevbox.confidence >= thresh:
             filtered_pred.append(bevbox)
     return filtered_pred
 
-def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
+
+def inference_model(model, local_pointcloud_path, thresh=0.3):
     """Inference 1 pointcloud with the detector.
 
     Args:
         model (nn.Module): The loaded detector (ObjectDetection pipeline instance).
         local_pointcloud_path: str: The pointcloud filename.
-        local_pointcloud_path: str: The calibration filename.
     Returns:
         result Pointcloud.annotation object`.
     """
 
-    pc = read_pcd(local_pointcloud_path)
-    calib = KITTI.read_calib(calib_path)
-
-    reduced_pc = DataProcessing.remove_outside_points(
-        pc, calib['world_cam'], calib['cam_img'], [375, 1242])  # TODO: is it necessary?
+    pc = SlyProjectDataset.read_lidar(local_pointcloud_path)
 
     data = {
-        'point': reduced_pc,
-        'full_point': pc,
+        'point': pc,
         'feat': None,
-        'calib': calib,
         'bounding_boxes': None,
     }
 
@@ -155,10 +159,15 @@ def inference_model(model, local_pointcloud_path, calib_path, thresh=0.3):
     # TODO: add confidence to tags
     for data in loader:
         pred = g.model.run_inference(data)
-        pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
-        annotation = prediction_to_annotation(pred_by_thresh)
-        annotations.append(annotation)
 
-    return annotations[0] # 0 == no batch inference, loader should return 1 annotation
+        try:
+            pred_by_thresh = filter_prediction_threshold(pred[0], thresh) # pred[0] because batch_size == 1
+            annotation = prediction_to_annotation(pred_by_thresh)
+            annotations.append(annotation)
+        except Exception as e:
+            sly.logger.exception(e)
+            raise e
+    return annotations[0]  # 0 == no batch inference, loader should return 1 annotation
+
 
 

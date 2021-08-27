@@ -13,7 +13,7 @@ local_weights_path = None
 def get_models_list():
     res = [
         {
-            "config": "supervisely/train/configs/pointpillars_kitti_sly.yml",
+            "config": "supervisely/train/configs/pointpillars_sly.yml",
             "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointpillars_kitti_202012221652utc.zip",
             "model": "PointPillars",
             "MaPKITTIBEV": "61.6",
@@ -71,7 +71,7 @@ def init(data, state):
     state["disabled6"] = True
     init_progress(6, data)
 
-    state["weightsPath"] = ""# "/mmclassification/5687_synthetic products v2_003/checkpoints/epoch_10.pth"  #@TODO: for debug
+    state["weightsPath"] = ""
     data["done6"] = False
 
 

@@ -1,11 +1,12 @@
 import functools
 import os
+import sys
 
+sys.path.append('')
 import supervisely_lib as sly
 
-import globals as g
+import sly_globals as g
 import nn_utils
-from supervisely.src_backup.convert_sly_to_kitti3d import gen_calib_from_img_meta
 
 
 def send_error_data(func):
@@ -61,17 +62,12 @@ def get_session_info(api: sly.Api, task_id, context, state, app_logger):
 
 def _inference(api, pointcloud_id, threshold=None):
     local_pointcloud_path = os.path.join(g.my_app.data_dir, sly.rand_str(15) + ".pcd")
-    local_calib_path = local_pointcloud_path + ".txt"
+
     api.pointcloud.download_path(pointcloud_id, local_pointcloud_path)
-    rel_meta = api.pointcloud.get_list_related_images(pointcloud_id)
-    assert len(rel_meta) == 1  # Kitti has 1 calib file
-    gen_calib_from_img_meta(rel_meta[0], local_calib_path)
 
-    results = nn_utils.inference_model(g.model, local_pointcloud_path, local_calib_path,
+    results = nn_utils.inference_model(g.model, local_pointcloud_path,
                                        thresh=threshold if threshold is not None else 0.3)
-
     sly.fs.silent_remove(local_pointcloud_path)
-    sly.fs.silent_remove(local_calib_path)
     return results
 
 

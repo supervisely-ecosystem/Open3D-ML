@@ -68,6 +68,7 @@ def main():
     else:
         import tensorflow as tf
         import open3d.ml.tf as ml3d
+        from ml3d.datasets.sly_dataset import SlyProjectDataset
         from ml3d.tf.pipelines import ObjectDetection
 
         device = args.device
@@ -100,8 +101,7 @@ def main():
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = \
                         _ml3d.utils.Config.merge_cfg_file(cfg, args, extra_dict)
 
-        dataset = Dataset(cfg_dict_dataset.pop('dataset_path', None),
-                          **cfg_dict_dataset)
+        dataset = SlyProjectDataset(**cfg_dict_dataset)
 
         if args.mode is not None:
             cfg_dict_model["mode"] = args.mode

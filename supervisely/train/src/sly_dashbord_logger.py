@@ -3,6 +3,9 @@ import datetime
 import numpy as np
 import supervisely_lib as sly
 
+
+import sys
+sys.path.append('../train/src')
 import sly_globals as g
 from sly_train_progress import add_progress_to_request
 from supervisely_lib import logger
