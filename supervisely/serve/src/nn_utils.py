@@ -22,15 +22,31 @@ def _download_dir(remote_dir, local_dir):
 
 @sly.timeit
 def download_model_and_configs():
-    g.local_weights_path = os.path.join(g.my_app.data_dir, os.path.basename(g.remote_weights_path))
-    _download_dir(g.remote_weights_path, g.local_weights_path)
-    config = [x for x in os.listdir(g.local_weights_path) if x.endswith('yml')]
+    remote_model_dir, remote_model_weights_name = os.path.split(g.remote_weights_path)
+    remote_model_index = sly.fs.get_file_name(g.remote_weights_path) + '.index'
+    remote_config_dir = remote_model_dir
+    # Load config ../../../info/*.yml  (assert unique yml in dir)
+    for i in range(3):
+        remote_config_dir = os.path.split(remote_config_dir)[0]
+    remote_config_dir = os.path.join(remote_config_dir, 'info')
+    info_file_list = g.api.file.list(g.team_id, remote_config_dir)
+    config = [x['name'] for x in info_file_list if x['name'].endswith('yml')]
+    assert len(config) == 1
+    remote_config_file = os.path.join(remote_config_dir, config[0])
+
+    g.local_weights_path = os.path.join(g.my_app.data_dir, remote_model_weights_name)
+    g.local_index_path = os.path.join(g.my_app.data_dir, remote_model_index)
+    g.local_model_config_path = os.path.join(g.my_app.data_dir, config[0])
+
+    g.api.file.download(g.team_id, g.remote_weights_path, g.local_weights_path)
+    g.api.file.download(g.team_id, os.path.join(remote_model_dir, remote_model_index), g.local_index_path)
+    g.api.file.download(g.team_id, remote_config_file, g.local_model_config_path)
+
+
 
     sly.logger.debug(f"Remote weights {g.remote_weights_path}")
     sly.logger.debug(f"Local weights {g.local_weights_path}")
-
-
-    g.local_model_config_path = os.path.join(g.local_weights_path, config[0])
+    sly.logger.debug(f"Local index {g.local_index_path}")
     sly.logger.debug(f"Local config path {g.local_model_config_path}")
     sly.logger.info("Model has been successfully downloaded")
 
@@ -85,7 +101,7 @@ def find_unique_file(dir_where, endswith):
 
 @sly.timeit
 def deploy_model():
-    file = find_unique_file(g.local_weights_path, 'index')
+    file = g.local_weights_path
     if os.path.exists(file):
         g.local_ckpt_path = file.split('.')[0]
         g.model = init_model()
