@@ -7,9 +7,7 @@ my_app = sly.AppService()
 api = my_app.public_api
 task_id = my_app.task_id
 
-sly.fs.clean_dir(my_app.data_dir)  # @TODO: for debug
-
-
+os.environ['OPEN3D_ML_ROOT'] = '/Open3D-ML/set_open3d_ml_root.sh'
 inference = True
 team_id = int(os.environ['context.teamId'])
 workspace_id = int(os.environ['context.workspaceId'])
