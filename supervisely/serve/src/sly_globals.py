@@ -14,7 +14,7 @@ inference = True
 team_id = int(os.environ['context.teamId'])
 workspace_id = int(os.environ['context.workspaceId'])
 remote_weights_path = os.environ['modal.state.slyFile']
-device = os.environ['modal.state.device']
+device = 'cuda'
 
 
 root_source_path = str(pathlib.Path(sys.argv[0]).parents[3])
