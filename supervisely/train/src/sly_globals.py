@@ -3,10 +3,7 @@ from pathlib import Path
 import sys
 import supervisely_lib as sly
 import shutil
-from dotenv import load_dotenv  # pip install python-dotenv\
 
-load_dotenv("supervisely/train/debug.env")
-load_dotenv("supervisely/train/secret_debug.env", override=True)
 os.environ['OPEN3D_ML_ROOT'] = '/Open3D-ML/set_open3d_ml_root.sh'
 
 inference = False
