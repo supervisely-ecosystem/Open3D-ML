@@ -1,6 +1,6 @@
 import supervisely_lib as sly
 import sly_globals as g
-from ui import ui
+import ui
 
 
 def main():
