@@ -19,13 +19,13 @@ def get_models_list():
             "MaPKITTIBEV": "61.6",
             "MaPKITTI3D": "55.2"
         },
-        {
-            "config": "supervisely/train/configs/pointrcnn_kitti_sly.yml",
-            "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointrcnn_kitti_202105071146utc.zip",
-            "model": "PointRCNN",
-            "MaPKITTIBEV": "78.2",
-            "MaPKITTI3D": "65.9"
-        },
+        # {
+        #     "config": "supervisely/train/configs/pointrcnn_kitti_sly.yml",
+        #     "weightsUrl": "https://storage.googleapis.com/open3d-releases/model-zoo/pointrcnn_kitti_202105071146utc.zip",
+        #     "model": "PointRCNN",
+        #     "MaPKITTIBEV": "78.2",
+        #     "MaPKITTI3D": "65.9"
+        # },
     ]
     _validate_models_configs(res)
     return res
