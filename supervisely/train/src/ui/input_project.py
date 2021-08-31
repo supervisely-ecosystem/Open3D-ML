@@ -1,13 +1,18 @@
 import sly_globals as g
+from sly_train_progress import get_progress_cb, reset_progress, init_progress
 import supervisely_lib as sly
 
 project_fs: sly.Project = None
+
 
 
 def init(data, state):
     data["projectId"] = g.project_info.id
     data["projectName"] = g.project_info.name
     data["projectImagesCount"] = g.project_info.items_count
+
+    init_progress("InputProject", data)
+
     data["done1"] = False
     state["collapsed1"] = False
 
@@ -18,9 +23,11 @@ def init(data, state):
 def download(api: sly.Api, task_id, context, state, app_logger):
     global project_fs
     if not sly.fs.dir_exists(g.project_dir):
-        # TODO: make progress bar
+        download_progress_project = get_progress_cb("InputProject", "Downloading project", g.project_info.items_count)
         sly.project.pointcloud_project.download_pointcloud_project(g.api, g.project_id, g.project_dir,
                                                                    download_items=True, log_progress=True)
+        download_progress_project(g.project_info.items_count)
+
     project_fs = sly.PointcloudProject.read_single(g.project_dir)  # TODO: not only single?
 
     fields = [
