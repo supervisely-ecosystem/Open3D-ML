@@ -68,8 +68,8 @@ def init_model():
                 tf.config.set_visible_devices(gpus[int(idx)], 'GPU')
         except RuntimeError as e:
             sly.logger.exception(e)
-
-    model = PointPillars(**cfg.model)
+    from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
+    model = PointPillarsNoNorm(**cfg.model)
     pipeline = ObjectDetection(model=model, **cfg.pipeline)
     pipeline.load_ckpt(g.local_ckpt_path)
     return pipeline
