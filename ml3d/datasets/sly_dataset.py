@@ -42,8 +42,8 @@ class SlyProjectDataset(BaseDataset):
             #     np.random.seed(shuffle_seed)
             # np.random.shuffle(items)
             # break
-        self.train_split = items[val_split:]
-        self.val_split = items[:val_split]
+        self.train_split = items
+        self.val_split = items
         self.test_split = None
 
     def get_label_to_names(self):
