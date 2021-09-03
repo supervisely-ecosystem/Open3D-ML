@@ -95,7 +95,10 @@ def main():
         else:
             Pipeline = _ml3d.utils.get_module("pipeline", cfg.pipeline.name,
                                               framework)
-        Model = _ml3d.utils.get_module("model", cfg.model.name, framework)
+
+
+        from ml3d.tf.models.point_pillars_no_norm import PointPillarsNoNorm
+        Model = PointPillarsNoNorm
         Dataset = _ml3d.utils.get_module("dataset", cfg.dataset.name)
 
         cfg_dict_dataset, cfg_dict_pipeline, cfg_dict_model = \
