@@ -85,8 +85,8 @@ class PointPillarsNoNorm(BaseModel):
         self.bbox_head = Anchor3DHead(num_classes=len(self.classes), **head)
 
         self.loss_cls = FocalLoss(**loss.get("focal_loss", {}))
-        #self.loss_bbox = SmoothL1Loss(**loss.get("smooth_l1", {}))
-        self.loss_bbox = self.l2_bbox_loss
+        self.loss_bbox = SmoothL1Loss(**loss.get("smooth_l1", {}))
+        #self.loss_bbox = self.l2_bbox_loss
         self.loss_dir = CrossEntropyLoss(**loss.get("cross_entropy", {}))
 
     def l2_bbox_loss(self, pred, target, avg_factor):
