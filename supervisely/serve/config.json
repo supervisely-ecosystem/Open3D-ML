@@ -9,7 +9,7 @@
   "docker_image": "docker.deepsystems.io/open3dml",
   "main_script": "supervisely/serve/src/sly_serve.py",
   "task_location": "application_sessions",
-  "icon": "https://img.icons8.com/fluency/100/000000/3d-scale.png",
+  "icon": "https://github.com/supervisely-ecosystem/Open3D-ML/assets/48245050/6ee777c9-5c86-4a43-832b-b6379f1adbcc",
   "icon_cover": true,
   "isolate": true,
   "need_gpu": true,
