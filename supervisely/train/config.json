@@ -11,7 +11,7 @@
   "gui_template": "supervisely/train/src/gui.html",
   "task_location": "workspace_tasks",
   "need_gpu": true,
-  "icon": "https://img.icons8.com/fluency/100/000000/3d-scale.png",
+  "icon": "https://github.com/supervisely-ecosystem/Open3D-ML/assets/48245050/6ee777c9-5c86-4a43-832b-b6379f1adbcc",
   "icon_cover": true,
   "context_menu": {
     "target": ["point_cloud_project"],
